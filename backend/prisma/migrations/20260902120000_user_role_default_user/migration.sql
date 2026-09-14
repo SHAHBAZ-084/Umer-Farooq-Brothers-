@@ -1,0 +1,2 @@
+-- User.role default is USER in Prisma schema; bootstrap code still creates ADMIN explicitly.
+-- SQLite cannot alter column defaults in place; application always sets role on insert.

@@ -1,0 +1,109 @@
+{
+  "name": "umer-farooq-pos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline desktop POS for Umer Farooq & Brothers — Electron + React + Express + SQLite",
+  "main": "dist-electron/main.js",
+  "author": "Umer Farooq & Brothers",
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w backend\" \"cross-env ELECTRON_DEV=1 npm run dev -w frontend\" \"npm run electron:dev\"",
+    "dev:web": "concurrently -k \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "electron:dev": "npm run build:electron && node scripts/prepare-dev-electron.js && wait-on http://127.0.0.1:5173 http://127.0.0.1:3847/api/health && node scripts/launch-electron-dev.js",
+    "electron:build": "npm run db:generate -w backend && npm run build -w backend && npm run build -w frontend && npm run build:electron",
+    "build:electron": "npm run prepare:icons && tsc -p electron/tsconfig.json",
+    "prepare:icons": "node scripts/generate-icons.js",
+    "prepare:electron-brand": "node scripts/prepare-dev-electron.js",
+    "shortcut:desktop": "powershell -ExecutionPolicy Bypass -File scripts/update-desktop-shortcut.ps1",
+    "dist": "npm run electron:build && electron-builder --publish never",
+    "dist:win": "npm run electron:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --publish never",
+    "start": "cross-env NODE_ENV=production electron .",
+    "postinstall": "npm run db:generate -w backend"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "build": {
+    "appId": "com.umerfarooqbrothers.pos",
+    "productName": "Umer Farooq & Brothers",
+    "icon": "build/icon.png",
+    "directories": {
+      "output": "release"
+    },
+    "afterPack": "./scripts/after-pack.js",
+    "files": [
+      "dist-electron/**/*",
+      "backend/dist/**/*",
+      "backend/prisma/schema.prisma",
+      "backend/prisma/migrations/**/*",
+      "backend/package.json",
+      "frontend/dist/**/*",
+      "shared/**/*",
+      "build/icon.png",
+      "build/icon.ico",
+      "package.json",
+      "node_modules/.prisma/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/.prisma/**/*",
+      "node_modules/@prisma/client/**/*",
+      "node_modules/prisma/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/.prisma",
+        "to": "backend/node_modules/.prisma"
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "build/icon.ico"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "build/icon.png"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "shortcutName": "Umer Farooq & Brothers"
+    },
+    "publish": null
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^3.0.2",
+    "rcedit": "^4.0.1",
+    "sharp": "^0.35.4",
+    "typescript": "^5.7.3",
+    "wait-on": "^8.0.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.3.1",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "electron-updater": "^6.3.9",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "googleapis": "^144.0.0",
+    "prisma": "^6.3.1",
+    "zod": "^3.24.1"
+  }
+}

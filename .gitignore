@@ -1,0 +1,24 @@
+node_modules/
+dist/
+dist-electron/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+.env
+.env.local
+.DS_Store
+Thumbs.db
+
+# Local runtime / packaging artifacts
+release/
+build/electron-dev/
+build/debug.log
+*.log
+backend/data/logs/
+backend/prisma/data/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp

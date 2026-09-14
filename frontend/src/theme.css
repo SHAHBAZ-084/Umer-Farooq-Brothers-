@@ -1,0 +1,263 @@
+:root,
+[data-theme='light'] {
+  /* Brand palette — deep teal */
+  --brand: #0E3D3D;
+  --brand-light: #0E6B6B;
+  --brand-dark: #0A2B2B;
+
+  --surface-1: #F2F4F3;
+  --surface-2: #FFFFFF;
+  --surface-3: #E9EDEC;
+
+  --text-primary: #16302E;
+  --text-secondary: #4A5C59;
+  --text-muted: #6B7B78;
+  --border: #DDE3E2;
+  --border-strong: #0E3D3D;
+
+  --fill-accent: #0E6B6B;
+  --on-accent: #FFFFFF;
+  --bg-accent: #E1F0EE;
+  --text-accent: #0E3D3D;
+
+  --fill-financial: #16302E;
+  --on-financial: #FFFFFF;
+  --text-financial: #16302E;
+
+  --text-success: #1E5C4A;
+  --text-danger: #A32D2D;
+  --bg-success: #EEF6F2;
+  --bg-danger: #FBEFEF;
+
+  --ledger-debit: #FF0000;
+  --ledger-credit: #1BB255;
+
+  --voucher-payment: #A32D2D;
+  --voucher-receipt: #1E5C4A;
+  --voucher-journal: #5C4010;
+  --voucher-kachi: #C89018;
+
+  --metric-cash-bg: #E7F6EE;
+  --metric-cash-accent: #0F7A4F;
+  --metric-stock-bg: #EEF3FB;
+  --metric-stock-accent: #1A5FA8;
+  --metric-vouchers-bg: #E1F0EE;
+  --metric-vouchers-accent: #0E6B6B;
+  --metric-approvals-bg: #FDF6E9;
+  --metric-approvals-accent: #B8862E;
+  --metric-approvals-pending-bg: #FDECEC;
+  --metric-approvals-pending-accent: #B42318;
+
+  --card-sale-commission-bg: #E8F4F7;
+  --card-sale-commission-accent: #1A6B7A;
+  --card-sale-paunch-bg: #FDF6EC;
+  --card-sale-paunch-accent: #B86E00;
+  --card-purchase-maal-bg: #F4F0FA;
+  --card-purchase-maal-accent: #5E3D99;
+  --card-kachi-maal-bg: #FBF6E8;
+  --card-kachi-maal-accent: #9A7B1A;
+
+  /* Dashboard quick-link accents */
+  --ql-payment: #B42318;
+  --ql-payment-bg: #FDECEC;
+  --ql-payment-hover: #FAD4D4;
+  --ql-receipt: #0F7A4F;
+  --ql-receipt-bg: #E8F7EF;
+  --ql-receipt-hover: #D2EFDF;
+  --ql-journal: #8A7340;
+  --ql-journal-bg: #F7F3E8;
+  --ql-journal-hover: #EEE6D4;
+  --ql-sale-commission: #1A6B7A;
+  --ql-sale-commission-bg: #E8F4F7;
+  --ql-sale-commission-hover: #D5EAF0;
+  --ql-sale-paunch: #B86E00;
+  --ql-sale-paunch-bg: #FDF6EC;
+  --ql-sale-paunch-hover: #F8E9CF;
+  --ql-purchase-maal: #5E3D99;
+  --ql-purchase-maal-bg: #F4F0FA;
+  --ql-purchase-maal-hover: #E7DFF5;
+  --ql-kachi-maal: #9A7B1A;
+  --ql-kachi-maal-bg: #FBF6E8;
+  --ql-kachi-maal-hover: #F3E9C8;
+  --ql-sale-general: #0D6E6E;
+  --ql-sale-general-bg: #E7F5F5;
+  --ql-sale-general-hover: #D2EBEB;
+  --ql-purchase-general: #7A3E6D;
+  --ql-purchase-general-bg: #F8EEF5;
+  --ql-purchase-general-hover: #EFDCEA;
+  --ql-view: #345C8C;
+  --ql-view-bg: #EEF3FA;
+  --ql-view-hover: #DCE7F4;
+  --ql-report: #1A5FA8;
+  --ql-report-bg: #EEF4FB;
+  --ql-report-hover: #D9E7F7;
+  --ql-report-ledger: #0F7A4F;
+  --ql-report-ledger-bg: #E8F7EF;
+  --ql-report-ledger-hover: #D2EFDF;
+  --ql-report-balance: #5E3D99;
+  --ql-report-balance-bg: #F4F0FA;
+  --ql-report-balance-hover: #E7DFF5;
+  --ql-report-vouchers: #B42318;
+  --ql-report-vouchers-bg: #FDECEC;
+  --ql-report-vouchers-hover: #FAD4D4;
+  --ql-report-trial: #8A7340;
+  --ql-report-trial-bg: #F7F3E8;
+  --ql-report-trial-hover: #EEE6D4;
+  --ql-report-sale: #B86E00;
+  --ql-report-sale-bg: #FDF6EC;
+  --ql-report-sale-hover: #F8E9CF;
+  --ql-report-stock: #0D6E6E;
+  --ql-report-stock-bg: #E7F5F5;
+  --ql-report-stock-hover: #D2EBEB;
+
+  --dropdown-bg: #FFFFFF;
+  --dropdown-border: #0E3D3D;
+  --dropdown-shadow: none;
+
+  --sidebar-width: 240px;
+  --nav-bg: #0E3D3D;
+  --nav-bg-light: #0E6B6B;
+  --nav-border: #0A2B2B;
+  --nav-text: #C8E8E4;
+  --nav-text-hover: #FFFFFF;
+  --nav-hover-bg: rgba(14, 107, 107, 0.28);
+  --nav-active-bg: rgba(14, 107, 107, 0.42);
+  --nav-active-border: #6FE0D0;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+
+  --app-control-h: 2.75rem;
+  --app-label-h: 1.5625rem;
+
+  --font-size-xs: 0.8125rem;
+  --font-size-sm: 0.9375rem;
+  --font-size-base: 1rem;
+  --font-size-md: 1.0625rem;
+  --font-size-lg: 1.1875rem;
+  --font-size-xl: 1.375rem;
+  --font-size-2xl: 1.625rem;
+}
+
+[data-theme='dark'] {
+  --brand: #2DB8A8;
+  --brand-light: #4ECDC4;
+  --brand-dark: #1A8A7E;
+
+  --surface-1: #1A1F1E;
+  --surface-2: #222928;
+  --surface-3: #121616;
+
+  --text-primary: #E8F2F0;
+  --text-secondary: #A8BBB7;
+  --text-muted: #7A8C88;
+  --border: #3A4543;
+  --border-strong: #2DB8A8;
+
+  --fill-accent: #2DB8A8;
+  --on-accent: #0A1A18;
+  --bg-accent: #1A2E2C;
+  --text-accent: #6FE0D0;
+
+  --fill-financial: #2DB8A8;
+  --on-financial: #0A1A18;
+  --text-financial: #6FE0D0;
+
+  --text-success: #6BC4A8;
+  --text-danger: #E88888;
+  --bg-success: #1A2E28;
+  --bg-danger: #3A2020;
+
+  --ledger-debit: #FF0000;
+  --ledger-credit: #1BB255;
+
+  --voucher-payment: #E88888;
+  --voucher-receipt: #6BC4A8;
+  --voucher-journal: #E0A830;
+  --voucher-kachi: #D4A843;
+
+  --metric-cash-bg: #1A2E28;
+  --metric-cash-accent: #6BC4A8;
+  --metric-stock-bg: #1A2438;
+  --metric-stock-accent: #7EB2E8;
+  --metric-vouchers-bg: #1A2E2C;
+  --metric-vouchers-accent: #2DB8A8;
+  --metric-approvals-bg: #2A2218;
+  --metric-approvals-accent: #E0B05A;
+  --metric-approvals-pending-bg: #3A2224;
+  --metric-approvals-pending-accent: #E88888;
+
+  --card-sale-commission-bg: #1A2A30;
+  --card-sale-commission-accent: #5BC4D4;
+  --card-sale-paunch-bg: #2A2218;
+  --card-sale-paunch-accent: #E8A855;
+  --card-purchase-maal-bg: #241E30;
+  --card-purchase-maal-accent: #B89AE8;
+  --card-kachi-maal-bg: #2A2418;
+  --card-kachi-maal-accent: #D4A843;
+
+  --ql-payment: #E88888;
+  --ql-payment-bg: #3A2224;
+  --ql-payment-hover: #4A2A2C;
+  --ql-receipt: #6BC4A8;
+  --ql-receipt-bg: #1A2E28;
+  --ql-receipt-hover: #223830;
+  --ql-journal: #D4B86A;
+  --ql-journal-bg: #2A2618;
+  --ql-journal-hover: #35301E;
+  --ql-sale-commission: #5BC4D4;
+  --ql-sale-commission-bg: #1A2A30;
+  --ql-sale-commission-hover: #223640;
+  --ql-sale-paunch: #E8A855;
+  --ql-sale-paunch-bg: #2A2218;
+  --ql-sale-paunch-hover: #3A2E1E;
+  --ql-purchase-maal: #B89AE8;
+  --ql-purchase-maal-bg: #241E30;
+  --ql-purchase-maal-hover: #302840;
+  --ql-kachi-maal: #D4A843;
+  --ql-kachi-maal-bg: #2A2418;
+  --ql-kachi-maal-hover: #3A301E;
+  --ql-sale-general: #5BC4C4;
+  --ql-sale-general-bg: #1A2A2A;
+  --ql-sale-general-hover: #223636;
+  --ql-purchase-general: #D4A0C4;
+  --ql-purchase-general-bg: #2A1E28;
+  --ql-purchase-general-hover: #3A2834;
+  --ql-view: #7EB2E8;
+  --ql-view-bg: #1A2438;
+  --ql-view-hover: #243048;
+  --ql-report: #7EB2E8;
+  --ql-report-bg: #1A2438;
+  --ql-report-hover: #243048;
+  --ql-report-ledger: #6BC4A8;
+  --ql-report-ledger-bg: #1A2E28;
+  --ql-report-ledger-hover: #223830;
+  --ql-report-balance: #B89AE8;
+  --ql-report-balance-bg: #241E30;
+  --ql-report-balance-hover: #302840;
+  --ql-report-vouchers: #E88888;
+  --ql-report-vouchers-bg: #3A2224;
+  --ql-report-vouchers-hover: #4A2A2C;
+  --ql-report-trial: #D4B86A;
+  --ql-report-trial-bg: #2A2618;
+  --ql-report-trial-hover: #35301E;
+  --ql-report-sale: #E8A855;
+  --ql-report-sale-bg: #2A2218;
+  --ql-report-sale-hover: #3A2E1E;
+  --ql-report-stock: #5BC4C4;
+  --ql-report-stock-bg: #1A2A2A;
+  --ql-report-stock-hover: #223636;
+
+  --dropdown-bg: #222928;
+  --dropdown-border: #2DB8A8;
+  --dropdown-shadow: none;
+
+  --nav-bg: #0A2B2B;
+  --nav-bg-light: #0E3D3D;
+  --nav-border: #061818;
+  --nav-text: #C8E8E4;
+  --nav-text-hover: #FFFFFF;
+  --nav-hover-bg: rgba(45, 184, 168, 0.18);
+  --nav-active-bg: rgba(45, 184, 168, 0.28);
+  --nav-active-border: #6FE0D0;
+}

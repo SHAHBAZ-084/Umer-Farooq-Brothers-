@@ -1,0 +1,842 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum VoucherType {
+  PAYMENT
+  RECEIPT
+  JOURNAL
+  KACHI
+  PURCHASE_MAAL
+  SALE_PAUNCH
+  SALE_COMMISSION
+  PURCHASE_GENERAL
+  SALE_GENERAL
+  GENERAL_TRADE
+}
+
+enum BoriThelaMode {
+  BORI
+  THELA
+}
+
+enum VoucherStatus {
+  ACTIVE
+  PENDING_APPROVAL
+  REJECTED
+  CANCELLED
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum LedgerEntryType {
+  DEBIT
+  CREDIT
+}
+
+enum FinancialYearStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum InvoiceType {
+  SALE_COMMISSION
+  SALE_PAUNCH
+  PURCHASE_MAAL
+  KACHI_MAAL
+  PURCHASE_GENERAL
+  SALE_GENERAL
+  GENERAL_TRADE
+}
+
+enum ProductStockMode {
+  GRAIN_BAGS
+  QUANTITY
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING_APPROVAL
+  POSTED
+  REJECTED
+  CANCELLED
+}
+
+/** Approval gate for Account and Product (separate from isActive soft-delete). */
+enum RecordStatus {
+  ACTIVE
+  PENDING_APPROVAL
+  REJECTED
+}
+
+enum OpeningBalanceSide {
+  DR
+  CR
+}
+
+enum AdjustmentStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum ReminderStatus {
+  PENDING
+  SETTLED
+}
+
+enum ScheduleFrequency {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum ScheduleStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  DELETED
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  displayName  String?
+  role         UserRole @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vouchersCreated  Voucher[]              @relation("VoucherCreatedBy")
+  vouchersModified Voucher[]              @relation("VoucherModifiedBy")
+  vouchersDeleted  Voucher[]              @relation("VoucherDeletedBy")
+  financialYearsClosed FinancialYear[]    @relation("FinancialYearClosedBy")
+  trialBalanceApprovals TrialBalanceApproval[]
+  invoicesCreated       Invoice[]
+  accountsCreated       Account[]              @relation("AccountCreatedBy")
+  productsCreated       Product[]              @relation("ProductCreatedBy")
+  accountAdjustmentsCreated AccountAdjustment[] @relation("AccountAdjustmentCreatedBy")
+  stockAdjustmentsCreated   StockAdjustment[]   @relation("StockAdjustmentCreatedBy")
+  remindersCreated          Reminder[]            @relation("ReminderCreatedBy")
+  remindersSettled          Reminder[]            @relation("ReminderSettledBy")
+  scheduledVouchersCreated  ScheduledVoucher[]    @relation("ScheduledVoucherCreatedBy")
+}
+
+model Supplier {
+  id            Int      @id @default(autoincrement())
+  name          String
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  invoices Invoice[]
+}
+
+model Customer {
+  id         Int      @id @default(autoincrement())
+  name       String
+  fatherName String?
+  cnic       String?  @unique
+  phone      String?
+  email      String?
+  address    String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  invoices Invoice[]
+}
+
+model AccountCategory {
+  id        Int      @id @default(autoincrement())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  accounts Account[]
+}
+
+model Account {
+  id         Int         @id @default(autoincrement())
+  categoryId Int
+  name       String
+  code       String      @unique
+  type       AccountType
+  isActive   Boolean     @default(true)
+  status     RecordStatus @default(PENDING_APPROVAL)
+  /** Opening balance to post when status becomes ACTIVE (approve step). */
+  pendingOpeningBalance     Decimal?
+  pendingOpeningBalanceSide OpeningBalanceSide?
+  /** Optional contact fields — collected for Sale / Purchase party accounts. */
+  phone     String?
+  address   String?
+  cnic      String?
+  createdById Int?
+  /** System/control accounts (e.g. Opening Balance Equity) — excluded from UI lists and TB rows. */
+  isHidden   Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  category        AccountCategory               @relation(fields: [categoryId], references: [id])
+  createdBy       User?                         @relation("AccountCreatedBy", fields: [createdById], references: [id])
+  ledger          Ledger?
+  debitVouchers   Voucher[]                     @relation("DebitAccount")
+  creditVouchers  Voucher[]                     @relation("CreditAccount")
+  closingBalances FinancialYearClosingBalance[]
+  product              Product?
+  kachiMaalLines         KachiMaalLine[]   @relation("KachiMaalPartyAccount")
+  purchaseMaalLines        PurchaseMaalLine[] @relation("PurchaseMaalPartyAccount")
+  salePaunchLines          SalePaunchLine[]   @relation("SalePaunchMaalKhataAccount")
+  saleCommissionLines      SaleCommissionLine[] @relation("SaleCommissionPartyAccount")
+  generalPurchasePartyInvoices Invoice[] @relation("GeneralPurchasePartyAccount")
+  generalSalePartyInvoices     Invoice[] @relation("GeneralSalePartyAccount")
+  kachiMaalDebitInvoices   Invoice[]         @relation("KachiMaalDebitAccount")
+  accountAdjustments       AccountAdjustment[]
+  reminders                Reminder[]
+  scheduledDebitVouchers   ScheduledVoucher[] @relation("ScheduleDebit")
+  scheduledCreditVouchers  ScheduledVoucher[] @relation("ScheduleCredit")
+
+  @@index([categoryId])
+  @@index([isHidden])
+  @@index([status])
+  @@index([createdById])
+  @@index([phone])
+  @@index([cnic])
+}
+
+model Ledger {
+  id        Int      @id @default(autoincrement())
+  accountId Int      @unique
+  balance   Decimal  @default(0)
+  updatedAt DateTime @updatedAt
+
+  account Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  entries LedgerEntry[]
+}
+
+model LedgerEntry {
+  id               Int             @id @default(autoincrement())
+  ledgerId         Int
+  voucherId        Int?
+  type             LedgerEntryType
+  amount           Decimal
+  balance          Decimal
+  notes            String?
+  isReversal       Boolean         @default(false)
+  isOpeningBalance Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+
+  ledger  Ledger   @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  voucher Voucher? @relation(fields: [voucherId], references: [id])
+
+  @@index([ledgerId])
+  @@index([voucherId])
+  @@index([createdAt])
+  @@index([ledgerId, createdAt])
+}
+
+model Voucher {
+  id              Int           @id @default(autoincrement())
+  type            VoucherType
+  number          Int
+  date            DateTime
+  debitAccountId  Int?
+  creditAccountId Int?
+  amount          Decimal
+  description     String?
+  reference       String?
+  status          VoucherStatus @default(ACTIVE)
+  createdById     Int
+  modifiedById    Int?
+  deletedById     Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+  financialYearId Int?
+
+  financialYear FinancialYear? @relation(fields: [financialYearId], references: [id])
+  debitAccount  Account?       @relation("DebitAccount", fields: [debitAccountId], references: [id])
+  creditAccount Account?       @relation("CreditAccount", fields: [creditAccountId], references: [id])
+  createdBy     User           @relation("VoucherCreatedBy", fields: [createdById], references: [id])
+  modifiedBy    User?          @relation("VoucherModifiedBy", fields: [modifiedById], references: [id])
+  deletedBy     User?          @relation("VoucherDeletedBy", fields: [deletedById], references: [id])
+  ledgerEntries LedgerEntry[]
+  invoiceLink   InvoiceVoucher?
+
+  // Uniqueness for live numbers is enforced by partial unique index
+  // Voucher_financialYearId_type_number_active_key (status != CANCELLED) in migrations.
+  @@index([financialYearId, type])
+  @@index([debitAccountId])
+  @@index([creditAccountId])
+  @@index([date])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model FinancialYear {
+  id         Int                 @id @default(autoincrement())
+  label      String              @unique
+  startDate  DateTime
+  endDate    DateTime?
+  status     FinancialYearStatus @default(ACTIVE)
+  closedAt   DateTime?
+  closedById Int?
+
+  closedBy        User?                         @relation("FinancialYearClosedBy", fields: [closedById], references: [id])
+  closingBalances FinancialYearClosingBalance[]
+  vouchers        Voucher[]
+  invoices        Invoice[]
+
+  @@index([status])
+}
+
+model FinancialYearClosingBalance {
+  id              Int     @id @default(autoincrement())
+  financialYearId Int
+  accountId       Int
+  balance         Decimal
+
+  financialYear FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  account       Account       @relation(fields: [accountId], references: [id])
+
+  @@unique([financialYearId, accountId])
+}
+
+model TrialBalanceApproval {
+  id           Int      @id @default(autoincrement())
+  period       String   @unique
+  approvedById Int
+  notes        String?
+  snapshot     Json
+  createdAt    DateTime @default(now())
+
+  approvedBy User @relation(fields: [approvedById], references: [id])
+}
+
+model ProductCategory {
+  id        Int              @id @default(autoincrement())
+  name      String           @unique
+  stockMode ProductStockMode
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id           Int      @id @default(autoincrement())
+  name         String
+  code         String   @unique
+  unit         String?
+  accountId    Int      @unique
+  categoryId   Int
+  averageCost  Decimal?
+  isActive     Boolean  @default(true)
+  status       RecordStatus @default(PENDING_APPROVAL)
+  createdById  Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  account              Account                   @relation(fields: [accountId], references: [id])
+  category             ProductCategory           @relation(fields: [categoryId], references: [id])
+  createdBy            User?                     @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  invoiceItems         InvoiceItem[]
+  invoices             Invoice[]
+  stockMovements       StockMovement[]
+  stockRemainders      StockRemainder[]
+  stockAdjustments     StockAdjustment[]
+  quantityMovements    ProductQuantityMovement[]
+  generalPurchaseLines GeneralPurchaseLine[]
+  generalSaleLines     GeneralSaleLine[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([categoryId])
+}
+
+model Invoice {
+  id              Int           @id @default(autoincrement())
+  type            InvoiceType
+  status          InvoiceStatus @default(DRAFT)
+  /** Per-type sequence number (mirrors Voucher.number). Embedded in `reference`. */
+  number          Int
+  reference       String
+  customerId      Int?
+  supplierId      Int?
+  total           Decimal       @default(0)
+  notes           String?
+  invoiceDate     DateTime?
+  billNo          String?
+  gariNo          String?
+  jins            String?
+  qism            String?
+  tafseel         String?
+  debitAccountId  Int?
+  partyAccountId  Int?
+  salePartyAccountId Int?
+  miscAmount      Decimal       @default(0)
+  munshianaAmount Decimal       @default(0)
+  taxAmount       Decimal       @default(0)
+  biltyKirayaAmount Decimal     @default(0)
+  lowerBardanaMode     BoriThelaMode?
+  lowerBardanaQty      Decimal?
+  lowerBardanaRate     Decimal?
+  lowerBardanaAmount   Decimal?
+  marketFeeEnabled     Boolean       @default(false)
+  mazduriEnabled       Boolean       @default(false)
+  productId              Int?
+  legacyInventoryPosting Boolean       @default(false)
+  financialYearId Int?
+  createdById     Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customer      Customer?     @relation(fields: [customerId], references: [id])
+  supplier      Supplier?     @relation(fields: [supplierId], references: [id])
+  debitAccount  Account?      @relation("KachiMaalDebitAccount", fields: [debitAccountId], references: [id])
+  partyAccount  Account?      @relation("GeneralPurchasePartyAccount", fields: [partyAccountId], references: [id])
+  salePartyAccount Account?   @relation("GeneralSalePartyAccount", fields: [salePartyAccountId], references: [id])
+  product       Product?      @relation(fields: [productId], references: [id])
+  financialYear FinancialYear? @relation(fields: [financialYearId], references: [id])
+  createdBy     User          @relation(fields: [createdById], references: [id])
+  items         InvoiceItem[]
+  vouchers      InvoiceVoucher[]
+  kachiMaalLines KachiMaalLine[]
+  purchaseMaalLines PurchaseMaalLine[]
+  salePaunchLines SalePaunchLine[]
+  saleCommissionLines SaleCommissionLine[]
+  generalPurchaseLines GeneralPurchaseLine[]
+  generalSaleLines GeneralSaleLine[]
+  stockMovements StockMovement[]
+  emptyBardanaMovements EmptyBardanaMovement[]
+  quantityMovements ProductQuantityMovement[]
+
+  // Live uniqueness: partial indexes Invoice_type_number_active_key /
+  // Invoice_reference_active_key (status != CANCELLED) — see migrations.
+  @@index([financialYearId])
+  @@index([financialYearId, type, status])
+  @@index([createdAt])
+  @@index([type, status])
+}
+
+model KachiMaalLine {
+  id               Int           @id @default(autoincrement())
+  invoiceId        Int
+  partyAccountId   Int
+  jins             String?
+  qism             String?
+  boriOrThelaMode  BoriThelaMode
+  bagCount         Decimal       @default(0)
+  bhartii          Decimal       @default(0)
+  dharanCount      Decimal       @default(0)
+  looseKg          Decimal       @default(0)
+  totalWeightKg    Decimal       @default(0)
+  ratePerMaund     Decimal       @default(0)
+  amount           Decimal       @default(0)
+  bardanaQty       Decimal?
+  bardanaRate      Decimal?
+  bardanaAmount    Decimal?
+  netCreditToParty Decimal       @default(0)
+  sortOrder        Int           @default(0)
+
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  partyAccount Account @relation("KachiMaalPartyAccount", fields: [partyAccountId], references: [id])
+
+  @@index([invoiceId])
+  @@index([partyAccountId])
+}
+
+model PurchaseMaalLine {
+  id               Int           @id @default(autoincrement())
+  invoiceId        Int
+  partyAccountId   Int
+  jins             String?
+  qism             String?
+  boriOrThelaMode  BoriThelaMode
+  bagCount         Decimal       @default(0)
+  bhartii          Decimal       @default(0)
+  dharanCount      Decimal       @default(0)
+  looseKg          Decimal       @default(0)
+  totalWeightKg    Decimal       @default(0)
+  ratePerMaund     Decimal       @default(0)
+  amount           Decimal       @default(0)
+  bardanaQty       Decimal?
+  bardanaRate      Decimal?
+  bardanaAmount    Decimal?
+  dammiChecked     Boolean       @default(false)
+  dammiAmount      Decimal       @default(0)
+  netCreditToParty Decimal       @default(0)
+  sortOrder        Int           @default(0)
+
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  partyAccount Account @relation("PurchaseMaalPartyAccount", fields: [partyAccountId], references: [id])
+
+  @@index([invoiceId])
+  @@index([partyAccountId])
+}
+
+model SaleCommissionLine {
+  id               Int           @id @default(autoincrement())
+  invoiceId        Int
+  partyAccountId   Int
+  jins             String?
+  qism             String?
+  boriOrThelaMode  BoriThelaMode
+  bagCount         Decimal       @default(0)
+  bhartii          Decimal       @default(0)
+  dharanCount      Decimal       @default(0)
+  looseKg          Decimal       @default(0)
+  totalWeightKg    Decimal       @default(0)
+  ratePerMaund     Decimal       @default(0)
+  amount           Decimal       @default(0)
+  bardanaQty       Decimal?
+  bardanaRate      Decimal?
+  bardanaAmount    Decimal?
+  dammiChecked     Boolean       @default(false)
+  dammiAmount      Decimal       @default(0)
+  netCreditToParty Decimal       @default(0)
+  sortOrder        Int           @default(0)
+
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  partyAccount Account @relation("SaleCommissionPartyAccount", fields: [partyAccountId], references: [id])
+
+  @@index([invoiceId])
+  @@index([partyAccountId])
+}
+
+model GeneralPurchaseLine {
+  id            Int     @id @default(autoincrement())
+  invoiceId     Int
+  productId     Int
+  quantity      Decimal
+  rate          Decimal
+  lineTotal     Decimal
+  mazduriAmount Decimal @default(0)
+  sortOrder     Int     @default(0)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+model GeneralSaleLine {
+  id        Int     @id @default(autoincrement())
+  invoiceId Int
+  productId Int
+  quantity  Decimal
+  rate      Decimal
+  lineTotal Decimal
+  unitCost  Decimal @default(0)
+  sortOrder Int     @default(0)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+model SalePaunchLine {
+  id                 Int           @id @default(autoincrement())
+  invoiceId          Int
+  maalKhataAccountId Int
+  jins               String?
+  qism               String?
+  boriOrThelaMode    BoriThelaMode
+  bagCount           Decimal       @default(0)
+  thelaCount         Decimal       @default(0)
+  bhartii            Decimal       @default(0)
+  dharanCount        Decimal       @default(0)
+  looseKg            Decimal       @default(0)
+  totalWeightKg      Decimal       @default(0)
+  kaatKg             Decimal       @default(0)
+  netWeightKg        Decimal       @default(0)
+  lowerKaatKg        Decimal       @default(0)
+  lowerNetWeightKg   Decimal       @default(0)
+  upperRatePerMaund  Decimal       @default(0)
+  upperAmount        Decimal       @default(0)
+  kanta              Decimal       @default(0)
+  netUpperAmount     Decimal       @default(0)
+  lowerRatePerMaund  Decimal       @default(0)
+  lowerAmount        Decimal       @default(0)
+  rowRevenue         Decimal       @default(0)
+  bardanaQty         Decimal?
+  bardanaRate        Decimal?
+  bardanaAmount      Decimal?
+  dammiChecked       Boolean       @default(false)
+  dammiAmount        Decimal       @default(0)
+  sortOrder          Int           @default(0)
+
+  invoice          Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  maalKhataAccount Account @relation("SalePaunchMaalKhataAccount", fields: [maalKhataAccountId], references: [id])
+
+  @@index([invoiceId])
+  @@index([maalKhataAccountId])
+}
+
+model SystemPreference {
+  id                Int      @id @default(1)
+  daamiPercent      Decimal  @default(0)
+  paleDariPercent   Decimal  @default(0)
+  brokeryPercent    Decimal  @default(0)
+  marketFeeRate     Decimal  @default(0)
+  bardanaRate       Decimal  @default(0)
+  taxPercent        Decimal  @default(0)
+  kaatPercent       Decimal  @default(0)
+  mazduriPercent    Decimal  @default(0)
+  commissionPercent Decimal  @default(0)
+  dalaliPercent     Decimal  @default(0)
+  sutliRate         Decimal  @default(0)
+  markeetFeeRate    Decimal  @default(0)
+  mazduriPerBagRate Decimal  @default(0)
+  kantaRate         Decimal  @default(0)
+  closingDate       String?
+  businessName      String   @default("Umer Farooq & Brothers")
+  proprietorName    String   @default("")
+  phone             String   @default("")
+  mobile            String?
+  email             String?
+  address           String?
+  ntnNumber         String?
+  updatedAt         DateTime @updatedAt
+}
+
+model InvoiceItem {
+  id        Int     @id @default(autoincrement())
+  invoiceId Int
+  productId Int?
+  label     String
+  quantity  Decimal @default(0)
+  unitPrice Decimal @default(0)
+  total     Decimal @default(0)
+
+  invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model InvoiceVoucher {
+  id        Int @id @default(autoincrement())
+  invoiceId Int
+  voucherId Int @unique
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  voucher Voucher @relation(fields: [voucherId], references: [id])
+
+  @@index([invoiceId])
+}
+
+/** Physical empty bags (Bori/Thela) — report + manual add only, not chart of accounts. */
+enum EmptyBardanaDirection {
+  IN
+  OUT
+}
+
+model EmptyBardanaBalance {
+  bagType   BoriThelaMode @id
+  balance   Decimal       @default(0)
+  updatedAt DateTime      @updatedAt
+}
+
+model EmptyBardanaMovement {
+  id          Int                   @id @default(autoincrement())
+  bagType     BoriThelaMode
+  direction   EmptyBardanaDirection
+  qty         Decimal
+  date        DateTime
+  source      String
+  description String?
+  invoiceId   Int?
+  createdAt   DateTime              @default(now())
+
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([bagType, date, id])
+  @@index([invoiceId])
+}
+
+/** Report-only bag stock — not linked to chart of accounts / vouchers. */
+enum StockBagType {
+  BORI
+  THELA
+}
+
+enum StockDirection {
+  IN
+  OUT
+}
+
+model StockRemainder {
+  id           Int          @id @default(autoincrement())
+  productId    Int
+  bagType      StockBagType
+  remainderKg  Decimal      @default(0)
+  updatedAt    DateTime     @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, bagType])
+  @@index([productId])
+}
+
+model StockMovement {
+  id               Int            @id @default(autoincrement())
+  productId        Int
+  bagType          StockBagType
+  direction        StockDirection
+  bags             Decimal
+  date             DateTime
+  invoiceId        Int?
+  invoiceType      InvoiceType?
+  invoiceReference String
+  description      String?
+  stockAdjustmentId Int?          @unique
+  createdAt        DateTime       @default(now())
+
+  product         Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  invoice         Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  stockAdjustment StockAdjustment? @relation(fields: [stockAdjustmentId], references: [id], onDelete: SetNull)
+
+  @@index([productId, bagType, date, id])
+  @@index([invoiceId])
+}
+
+model ProductQuantityMovement {
+  id               Int            @id @default(autoincrement())
+  productId        Int
+  direction        StockDirection
+  quantity         Decimal
+  date             DateTime
+  invoiceId        Int?
+  invoiceType      InvoiceType?
+  invoiceReference String
+  description      String?
+  createdAt        DateTime       @default(now())
+
+  product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([productId, date, id])
+  @@index([invoiceId])
+}
+
+model AccountAdjustment {
+  id             Int                @id @default(autoincrement())
+  accountId      Int
+  amount         Decimal
+  side           OpeningBalanceSide
+  adjustmentDate DateTime
+  notes          String?
+  status         AdjustmentStatus   @default(PENDING_APPROVAL)
+  createdById    Int
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  account   Account @relation(fields: [accountId], references: [id])
+  createdBy User    @relation("AccountAdjustmentCreatedBy", fields: [createdById], references: [id])
+
+  @@index([status])
+  @@index([accountId])
+  @@index([createdById])
+}
+
+model StockAdjustment {
+  id             Int                @id @default(autoincrement())
+  productId      Int
+  bagType        StockBagType
+  direction      StockDirection
+  bags           Decimal
+  amount         Decimal
+  side           OpeningBalanceSide
+  adjustmentDate DateTime
+  notes          String?
+  status         AdjustmentStatus   @default(PENDING_APPROVAL)
+  createdById    Int
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  product       Product        @relation(fields: [productId], references: [id])
+  createdBy     User           @relation("StockAdjustmentCreatedBy", fields: [createdById], references: [id])
+  stockMovement StockMovement?
+
+  @@index([status])
+  @@index([productId])
+  @@index([createdById])
+}
+
+model Reminder {
+  id             Int            @id @default(autoincrement())
+  accountId      Int
+  amount         Decimal
+  reminderAt     DateTime
+  note           String?
+  status         ReminderStatus @default(PENDING)
+  createdById    Int
+  createdByRole  UserRole
+  settledAt      DateTime?
+  settledById    Int?
+  lastNotifiedAt DateTime?
+  notifyCount    Int            @default(0)
+  createdAt      DateTime       @default(now())
+
+  account   Account @relation(fields: [accountId], references: [id])
+  createdBy User    @relation("ReminderCreatedBy", fields: [createdById], references: [id])
+  settledBy User?   @relation("ReminderSettledBy", fields: [settledById], references: [id])
+
+  @@index([status, reminderAt])
+  @@index([accountId])
+  @@index([createdById])
+}
+
+model ScheduledVoucher {
+  id              Int               @id @default(autoincrement())
+  voucherType     VoucherType
+  debitAccountId  Int
+  creditAccountId Int
+  amount          Decimal
+  description     String?
+  frequency       ScheduleFrequency
+  startAt         DateTime
+  endAt           DateTime?
+  occurrenceLimit Int?
+  occurrencesRun  Int               @default(0)
+  nextRunAt       DateTime
+  lastRunAt       DateTime?
+  status          ScheduleStatus    @default(ACTIVE)
+  createdById     Int
+  createdAt       DateTime          @default(now())
+
+  debitAccount  Account @relation("ScheduleDebit", fields: [debitAccountId], references: [id])
+  creditAccount Account @relation("ScheduleCredit", fields: [creditAccountId], references: [id])
+  createdBy     User    @relation("ScheduledVoucherCreatedBy", fields: [createdById], references: [id])
+
+  @@index([status, nextRunAt])
+  @@index([createdById])
+  @@index([debitAccountId])
+  @@index([creditAccountId])
+}
