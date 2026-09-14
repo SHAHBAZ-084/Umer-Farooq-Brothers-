@@ -58,8 +58,6 @@ export const SIDEBAR_NAV: SidebarSection[] = [
           { label: 'Remove Account', to: '/accounts/manage/remove', adminOnly: true },
         ],
       },
-      { kind: 'link', label: 'Sale Party', to: '/accounts/sale-parties' },
-      { kind: 'link', label: 'Purchase Party', to: '/accounts/purchase-parties' },
       { kind: 'link', label: 'Account Adjustment', to: '/accounts/adjustment' },
     ],
   },
