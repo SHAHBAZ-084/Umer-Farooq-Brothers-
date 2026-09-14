@@ -62,13 +62,13 @@ export function PageShell({
 /** Flat bordered summary block. */
 export function Tile({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`border border-border bg-surface2 p-3 ${className}`}>{children}</div>
+    <div className={`border border-border bg-bg-surface p-3 ${className}`}>{children}</div>
   );
 }
 
 /** Form / content panel — white, sharp corners. */
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`border border-border bg-surface2 p-4 ${className}`}>{children}</div>;
+  return <div className={`border border-border bg-bg-surface p-4 ${className}`}>{children}</div>;
 }
 
 export function LegacyTable({
@@ -174,7 +174,7 @@ export function DangerButton(props: React.ButtonHTMLAttributes<HTMLButtonElement
     <button
       type="button"
       {...props}
-      className={`rounded-sm border border-danger bg-surface2 px-3 py-1.5 text-sm font-semibold text-danger hover:bg-bgDanger disabled:cursor-not-allowed disabled:opacity-60 ${props.className ?? ''}`}
+      className={`rounded-sm border border-status-danger bg-bg-surface px-3 py-1.5 text-sm font-semibold text-status-danger hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:opacity-60 ${props.className ?? ''}`}
     />
   );
 }

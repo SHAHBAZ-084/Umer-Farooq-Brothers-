@@ -257,7 +257,7 @@ export function SearchSelect({
           className="app-combobox-dropdown absolute left-0 top-full z-[201] mt-1 max-h-60 w-full overflow-y-auto"
         >
           {filtered.length === 0 ? (
-            <p className="bg-white px-3 py-2 text-sm text-textMuted" role="status">
+            <p className="bg-bg-surface px-3 py-2 text-sm text-textMuted" role="status">
               No matches
             </p>
           ) : (
@@ -277,7 +277,7 @@ export function SearchSelect({
                   className={`cursor-pointer px-3 py-2 text-sm ${
                     isHighlighted || isSelected
                       ? 'bg-bgAccent font-medium text-textAccent'
-                      : 'bg-white text-textPrimary hover:bg-bgAccent'
+                      : 'bg-bg-surface text-textPrimary hover:bg-accent-light'
                   }`}
                 >
                   {o.label}

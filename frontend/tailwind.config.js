@@ -12,13 +12,38 @@ export default {
         '2xl': ['var(--font-size-2xl)', { lineHeight: '2rem' }],
       },
       colors: {
+        // New POS palette tokens
+        bg: {
+          DEFAULT: '#F8FAFC',
+          surface: '#FFFFFF',
+          sidebar: '#0F172A',
+        },
+        border: {
+          DEFAULT: '#E2E8F0',
+        },
+        text: {
+          primary: '#1E293B',
+          secondary: '#64748B',
+          inverse: '#FFFFFF',
+        },
+        accent: {
+          DEFAULT: '#16A34A',
+          hover: '#15803D',
+          light: '#DCFCE7',
+        },
+        status: {
+          success: '#22C55E',
+          danger: '#DC2626',
+          warning: '#F59E0B',
+        },
+
+        // Existing semantic aliases (CSS vars — synced to palette in theme.css)
         surface1: 'var(--surface-1)',
         surface2: 'var(--surface-2)',
+        surface3: 'var(--surface-3)',
         textPrimary: 'var(--text-primary)',
         textSecondary: 'var(--text-secondary)',
         textMuted: 'var(--text-muted)',
-        border: 'var(--border)',
-        accent: 'var(--fill-accent)',
         onAccent: 'var(--on-accent)',
         bgAccent: 'var(--bg-accent)',
         textAccent: 'var(--text-accent)',
@@ -28,7 +53,6 @@ export default {
         bgDanger: 'var(--bg-danger)',
         ledgerDebit: 'var(--ledger-debit)',
         ledgerCredit: 'var(--ledger-credit)',
-        surface3: 'var(--surface-3)',
         nav: 'var(--nav-bg)',
         navBorder: 'var(--nav-border)',
         navText: 'var(--nav-text)',

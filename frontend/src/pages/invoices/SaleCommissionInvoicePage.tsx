@@ -419,7 +419,7 @@ export function SaleCommissionInvoicePage() {
 
   return (
     <PageShell centerTitle invoiceTitleBand title="Sale on Commission" className="app-page--sale-commission">
-      <Panel className="inv-form-panel mx-auto w-full overflow-visible bg-white">
+      <Panel className="inv-form-panel mx-auto w-full overflow-visible bg-bg-surface">
         <div ref={trapRef} className="overflow-visible">
           <form onSubmit={onSave} className="space-y-0">
             <InvoiceFormSection>

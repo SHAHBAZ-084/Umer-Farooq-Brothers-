@@ -75,11 +75,13 @@
 
     width: 100%;
 
-    max-width: 220px;
+    max-width: 160px;
 
     height: auto;
 
     border-radius: 50%;
+
+    object-fit: contain;
 
   }
 
@@ -193,32 +195,21 @@
 
 
 
-  .app-topnav-brand-mark {
-    display: inline-flex;
-    height: 2rem;
-    width: 2rem;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--nav-text-hover, #fff);
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-  }
-
   .app-topnav-brand-logo {
 
     display: block;
 
-    height: 2rem;
+    height: 2.25rem;
 
-    width: 2rem;
+    width: 2.25rem;
+
+    flex-shrink: 0;
 
     border-radius: 50%;
 
-    object-fit: cover;
+    object-fit: contain;
+
+    background: #ffffff;
 
   }
 
@@ -538,9 +529,9 @@
 
     border-right: 1px solid var(--nav-border);
 
-    background: var(--nav-bg);
+    background: #0F172A;
 
-    color: var(--nav-text);
+    color: #FFFFFF;
 
   }
 
@@ -582,13 +573,17 @@
 
     width: 100%;
 
-    max-width: 168px;
+    max-width: 120px;
 
     height: auto;
 
     margin: 0 auto;
 
     border-radius: 50%;
+
+    object-fit: contain;
+
+    background: #ffffff;
 
   }
 
@@ -1068,13 +1063,13 @@
 
   .btn-primary {
 
-    border: 1px solid var(--fill-financial);
+    border: 1px solid var(--fill-accent);
 
     border-radius: var(--radius-sm, 2px);
 
-    background-color: var(--fill-financial);
+    background-color: var(--fill-accent);
 
-    color: var(--on-financial);
+    color: var(--on-accent);
 
     padding: 0.4375rem 0.875rem;
 
@@ -1088,9 +1083,9 @@
 
   .btn-primary:hover:not(:disabled) {
 
-    background-color: var(--nav-bg-light, #0E6B6B);
+    background-color: var(--brand);
 
-    border-color: var(--nav-bg-light, #0E6B6B);
+    border-color: var(--brand);
 
   }
 
@@ -1128,7 +1123,7 @@
 
   .btn-financial:hover:not(:disabled) {
 
-    background-color: var(--nav-bg-light, #0E6B6B);
+    background-color: var(--nav-bg-light, #1E293B);
 
   }
 

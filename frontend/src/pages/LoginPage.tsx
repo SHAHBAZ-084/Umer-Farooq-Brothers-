@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { APP_BRAND_NAME } from '../config/brand';
+import { APP_BRAND_NAME, APP_LOGO_SRC } from '../config/brand';
 import { useAuth } from '../contexts/AuthContext';
 
 export function LoginPage() {
@@ -29,10 +29,13 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface3 px-4">
-      <div className="w-full max-w-md border border-border bg-surface2">
-        <div className="border-b border-border bg-financial px-6 py-5 text-center text-onFinancial">
-          <p className="login-brand-text mx-auto text-xl font-semibold tracking-wide">{APP_BRAND_NAME}</p>
+    <div className="flex min-h-screen items-center justify-center bg-bg px-4">
+      <div className="w-full max-w-md border border-border bg-bg-surface">
+        <div className="border-b border-border bg-bg-sidebar px-6 py-5 text-center text-text-inverse">
+          <img src={APP_LOGO_SRC} alt={APP_BRAND_NAME} className="login-brand-logo mx-auto" />
+          <p className="login-brand-text mx-auto mt-3 text-sm font-medium tracking-wide opacity-90">
+            {APP_BRAND_NAME}
+          </p>
         </div>
 
         <form className="space-y-4 p-6" onSubmit={handleSubmit}>
@@ -68,7 +71,11 @@ export function LoginPage() {
             />
           </div>
 
-          {error ? <p className="border border-danger bg-bgDanger px-3 py-2 text-sm text-danger">{error}</p> : null}
+          {error ? (
+            <p className="border border-status-danger/30 bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
+              {error}
+            </p>
+          ) : null}
 
           <button
             type="submit"

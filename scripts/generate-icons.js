@@ -1,10 +1,6 @@
 /**
- * Build Windows/desktop icons from the app logo.
+ * Build Windows/desktop icons from frontend/public/app-logo.png.
  * Multi-resolution ICO (16–256px) is required for taskbar/desktop on Windows.
- *
- * Place the new client logo at frontend/public/app-logo.png before running.
- * Until then, existing build/icon.png and build/icon.ico are left unchanged
- * (they still carry the previous client's mark and must be replaced).
  */
 const fs = require('fs');
 const path = require('path');
@@ -18,35 +14,34 @@ async function main() {
   const sizes = [16, 24, 32, 48, 64, 128, 256];
 
   if (!fs.existsSync(src)) {
-    console.warn(
-      '[generate-icons] No frontend/public/app-logo.png yet — skipping regen. ' +
-        'Existing build/icon.* still use the previous client mark; provide new artwork.',
-    );
-    process.exit(0);
+    console.error('[generate-icons] Missing frontend/public/app-logo.png');
+    process.exit(1);
   }
 
   fs.mkdirSync(buildDir, { recursive: true });
 
-  // Flatten onto brand charcoal so JPEG/partial-alpha sources never leave checkerboard.
-  const brandBg = { r: 26, g: 26, b: 26, alpha: 1 };
+  // Logo artwork is circular on white — keep white for favicon/taskbar clarity.
+  const iconBg = { r: 255, g: 255, b: 255, alpha: 1 };
 
   const masterPng = await sharp(src)
     .ensureAlpha()
-    .resize(512, 512, { fit: 'contain', background: brandBg })
-    .flatten({ background: brandBg })
+    .resize(512, 512, { fit: 'contain', background: iconBg })
+    .flatten({ background: iconBg })
     .png()
     .toBuffer();
 
   fs.writeFileSync(path.join(buildDir, 'icon.png'), masterPng);
 
-  // Browser tab favicon (same mark, smaller).
-  const favicon = await sharp(masterPng).resize(64, 64, { fit: 'contain', background: brandBg }).png().toBuffer();
+  const favicon = await sharp(masterPng)
+    .resize(64, 64, { fit: 'contain', background: iconBg })
+    .png()
+    .toBuffer();
   fs.writeFileSync(path.join(publicDir, 'favicon.png'), favicon);
 
   const pngBuffers = await Promise.all(
     sizes.map((size) =>
       sharp(masterPng)
-        .resize(size, size, { fit: 'contain', background: brandBg })
+        .resize(size, size, { fit: 'contain', background: iconBg })
         .png()
         .toBuffer(),
     ),

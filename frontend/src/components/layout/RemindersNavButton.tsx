@@ -221,7 +221,7 @@ export function RemindersNavButton() {
         <Bell className="inline h-4 w-4" strokeWidth={2} aria-hidden />
         <span className="ml-1.5 hidden sm:inline">Reminders</span>
         {count > 0 ? (
-          <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+          <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-status-danger px-1.5 py-0.5 text-[10px] font-bold leading-none text-text-inverse">
             {count > 99 ? '99+' : count}
           </span>
         ) : null}

@@ -209,7 +209,7 @@ function ApprovalEditModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-sidebar/40 p-4">
       <Panel className="max-h-[90vh] w-full max-w-lg overflow-y-auto shadow-lg">
         <div className="mb-4 flex items-center justify-between gap-2">
           <h2 className="text-base font-semibold text-textPrimary">

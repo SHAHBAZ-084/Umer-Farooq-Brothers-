@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { DatabaseBackup, LayoutDashboard, Users } from 'lucide-react';
 import { SIDEBAR_NAV, getSectionLandingPath, sectionIsActive } from '../../config/navigation';
-import { APP_BRAND_NAME } from '../../config/brand';
+import { APP_BRAND_NAME, APP_LOGO_SRC } from '../../config/brand';
 
 export function Sidebar() {
   const location = useLocation();
@@ -11,11 +11,9 @@ export function Sidebar() {
     <aside className="app-sidebar">
       <div className="app-sidebar-brand">
         <Link to="/" className="app-sidebar-brand-link" aria-label={`${APP_BRAND_NAME} — Dashboard`}>
-          <span className="app-sidebar-brand-title" role="img" aria-label={APP_BRAND_NAME}>
-            {APP_BRAND_NAME}
-          </span>
+          <img src={APP_LOGO_SRC} alt={APP_BRAND_NAME} className="app-sidebar-brand-logo" />
         </Link>
-        <p className="app-sidebar-brand-sub">POS</p>
+        <p className="app-sidebar-brand-sub">{APP_BRAND_NAME}</p>
       </div>
 
       <nav className="app-sidebar-nav">

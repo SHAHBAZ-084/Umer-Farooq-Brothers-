@@ -359,7 +359,7 @@ export function GeneralTradeInvoicePage() {
       className="app-page--general-trade"
     >
       <div ref={trapRef}>
-        <Panel className="inv-form-panel mx-auto w-full overflow-visible bg-white">
+        <Panel className="inv-form-panel mx-auto w-full overflow-visible bg-bg-surface">
           <form className="space-y-4" onSubmit={onSave}>
             <div className="grid gap-3 md:grid-cols-4">
               <div>

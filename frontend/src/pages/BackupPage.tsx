@@ -326,7 +326,7 @@ export function BackupPage() {
         </p>
 
         {!isDesktop ? (
-          <Tile className="mb-4 border-amber-200 bg-amber-50 text-sm text-amber-900">
+          <Tile className="mb-4 border-status-warning/40 bg-status-warning/10 text-sm text-status-warning">
             Run the Electron desktop app to choose a folder and create backups. Browser-only mode
             cannot access the file system.
           </Tile>

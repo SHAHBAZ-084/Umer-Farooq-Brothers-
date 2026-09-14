@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
-                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white"
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover"
                 onClick={() => window.location.assign('/')}
               >
                 Go to dashboard

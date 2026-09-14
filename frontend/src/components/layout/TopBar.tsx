@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { SIDEBAR_NAV, NavItem, sectionIsActive, TOP_NAV_SECTION_IDS } from '../../config/navigation';
-import { APP_BRAND_NAME } from '../../config/brand';
+import { APP_BRAND_NAME, APP_LOGO_SRC } from '../../config/brand';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
 import { APPROVALS_CHANGED_EVENT } from '../../lib/approvals';
@@ -152,7 +152,7 @@ function ApprovalNavLink({ active }: { active: boolean }) {
     >
       Approval
       {count > 0 ? (
-        <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+        <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-status-danger px-1.5 py-0.5 text-[10px] font-bold leading-none text-text-inverse">
           {count > 99 ? '99+' : count}
         </span>
       ) : null}
@@ -189,9 +189,7 @@ export function TopBar() {
           className={`app-topnav-brand ${dashboardActive ? 'is-active' : ''}`}
           aria-label={`${APP_BRAND_NAME} — Dashboard`}
         >
-          <span className="app-topnav-brand-mark" aria-hidden="true">
-            UF
-          </span>
+          <img src={APP_LOGO_SRC} alt="" className="app-topnav-brand-logo" />
           <span className="app-topnav-brand-text">{APP_BRAND_NAME}</span>
         </Link>
 
