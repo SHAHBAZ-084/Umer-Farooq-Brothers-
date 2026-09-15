@@ -127,7 +127,7 @@ function prepareProductionEnvironment(): void {
 
   const dataDir = path.join(app.getPath('userData'), 'data');
   fs.mkdirSync(dataDir, { recursive: true });
-  const dbFile = path.join(dataDir, 'grain-pos.db');
+  const dbFile = path.join(dataDir, 'umer-farooq-pos.db');
   // Prisma on Windows: file:C:/... (avoid file:/// which some path parsers mishandle)
   process.env.DATABASE_URL = `file:${dbFile.replace(/\\/g, '/')}`;
 

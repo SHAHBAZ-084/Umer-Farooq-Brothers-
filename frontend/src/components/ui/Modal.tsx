@@ -12,7 +12,7 @@ type ModalProps = {
 };
 
 /**
- * Shared centered modal — teal header band + border matching the app nav chrome.
+ * Shared centered modal — green accent header matching Sign in / Save actions.
  */
 export function Modal({
   open,
@@ -52,15 +52,15 @@ export function Modal({
       >
         <div
           className="flex max-h-[90vh] flex-col overflow-hidden bg-surface2 shadow-lg"
-          style={{ border: '1px solid var(--nav-bg)' }}
+          style={{ border: '1px solid var(--fill-accent)' }}
         >
           <div
             className="flex shrink-0 items-center justify-between gap-3 px-4 py-3"
-            style={{ backgroundColor: 'var(--nav-bg)' }}
+            style={{ backgroundColor: 'var(--fill-accent)' }}
           >
             <h2
               className="text-base font-semibold tracking-wide"
-              style={{ color: 'var(--nav-text-hover)' }}
+              style={{ color: 'var(--on-accent)' }}
             >
               {title}
             </h2>
@@ -69,8 +69,8 @@ export function Modal({
               onClick={onClose}
               className="rounded-sm px-2.5 py-1 text-sm font-medium transition"
               style={{
-                color: 'var(--nav-text-hover)',
-                border: '1px solid var(--nav-text-hover)',
+                color: 'var(--on-accent)',
+                border: '1px solid var(--on-accent)',
                 background: 'transparent',
               }}
             >

@@ -68,7 +68,7 @@ function prepareProductionEnvironment() {
     process.env.DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
     const dataDir = path_1.default.join(electron_1.app.getPath('userData'), 'data');
     fs_1.default.mkdirSync(dataDir, { recursive: true });
-    const dbFile = path_1.default.join(dataDir, 'grain-pos.db');
+    const dbFile = path_1.default.join(dataDir, 'umer-farooq-pos.db');
     // Prisma SQLite URL on Windows
     process.env.DATABASE_URL = (0, url_1.pathToFileURL)(dbFile).href;
     // Make `require('.prisma/client/default')` resolve outside the asar.
