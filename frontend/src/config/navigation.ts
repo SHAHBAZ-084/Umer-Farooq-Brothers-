@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { APP_BRAND_NAME } from './brand';
+import { APP_DASHBOARD_PATH, APP_HOME_PATH } from './routes';
 
 export type NavLink = {
   label: string;
@@ -227,7 +228,8 @@ export const REPORT_QUICK_LINKS: NavLink[] = (
 );
 
 const ROUTE_TITLES: Record<string, string> = {
-  '/': 'Dashboard',
+  [APP_HOME_PATH]: 'Home',
+  [APP_DASHBOARD_PATH]: 'Dashboard',
   '/user': 'User Information',
   '/backup': 'Database Backup',
   '/approvals': 'Approval',
@@ -253,7 +255,7 @@ for (const section of SIDEBAR_NAV) {
 export function getPageTitle(pathname: string): string {
   if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
   const match = Object.entries(ROUTE_TITLES)
-    .filter(([path]) => path !== '/')
+    .filter(([path]) => path !== APP_HOME_PATH)
     .sort(([a], [b]) => b.length - a.length)
     .find(([path]) => pathname.startsWith(path));
   return match?.[1] ?? APP_BRAND_NAME;

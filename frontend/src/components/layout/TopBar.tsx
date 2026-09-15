@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { SIDEBAR_NAV, NavItem, sectionIsActive, TOP_NAV_SECTION_IDS } from '../../config/navigation';
 import { APP_BRAND_NAME, APP_LOGO_SRC } from '../../config/brand';
+import { APP_DASHBOARD_PATH } from '../../config/routes';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
 import { APPROVALS_CHANGED_EVENT } from '../../lib/approvals';
@@ -164,7 +165,7 @@ export function TopBar() {
   const location = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
-  const dashboardActive = location.pathname === '/';
+  const dashboardActive = location.pathname === APP_DASHBOARD_PATH;
   const approvalsActive = location.pathname === '/approvals';
   const sectionsById = useMemo(
     () => Object.fromEntries(SIDEBAR_NAV.map((section) => [section.id, section])),
@@ -185,7 +186,7 @@ export function TopBar() {
     <header className="app-topnav">
       <div className="app-topnav-inner">
         <Link
-          to="/"
+          to={APP_DASHBOARD_PATH}
           className={`app-topnav-brand ${dashboardActive ? 'is-active' : ''}`}
           aria-label={`${APP_BRAND_NAME} — Dashboard`}
         >

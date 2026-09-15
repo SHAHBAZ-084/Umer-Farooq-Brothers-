@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { getPageTitle } from '../../config/navigation';
+import { APP_DASHBOARD_PATH, APP_HOME_PATH } from '../../config/routes';
 import { ClosePageButton } from './ClosePageButton';
 
 /** Invoice / voucher forms render their own centered PageShell title. */
@@ -21,7 +22,13 @@ function hidesContentHeaderTitle(pathname: string) {
 export function ContentHeader() {
   const location = useLocation();
   const title = getPageTitle(location.pathname);
-  const isDashboard = location.pathname === '/';
+  const isBlankHome = location.pathname === APP_HOME_PATH;
+  const isDashboard = location.pathname === APP_DASHBOARD_PATH;
+
+  // Blank default home: no header chrome — empty content area only.
+  if (isBlankHome) {
+    return null;
+  }
 
   if (hidesContentHeaderTitle(location.pathname)) {
     return null;
@@ -32,7 +39,7 @@ export function ContentHeader() {
       <div className="app-content-header-main">
         {!isDashboard ? (
           <p className="app-breadcrumb">
-            <Link to="/" className="app-breadcrumb-link">
+            <Link to={APP_HOME_PATH} className="app-breadcrumb-link">
               Home
             </Link>
             <span className="app-breadcrumb-sep">/</span>

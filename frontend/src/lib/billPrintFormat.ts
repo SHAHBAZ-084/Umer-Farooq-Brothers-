@@ -111,6 +111,59 @@ export function maalLineToBillRow(line: MaalLineDetail, kaatPercent: number): Bi
   };
 }
 
+/** Kachi Maal Bill To row — Our Dammi from prefs.daamiPercent; Net Weight = totalWeightKg (no kaat). */
+export type KachiSimpleBillRow = {
+  product: string;
+  netWeight: number;
+  rate: number;
+  total: number;
+  ourDammi: number;
+  netTotal: number;
+};
+
+/** Kachi Maal Bill From row — Mazduri hardcoded at 1%. */
+export type KachiBillFromSimpleRow = {
+  product: string;
+  netWeight: number;
+  rate: number;
+  total: number;
+  mazduri: number;
+  netTotal: number;
+};
+
+function kachiMaalLineBase(line: MaalLineDetail) {
+  return {
+    product: line.qism?.trim() || line.jins?.trim() || '',
+    netWeight: Number(line.totalWeightKg),
+    rate: Number(line.ratePerMaund),
+    total: Number(line.amount),
+  };
+}
+
+export function kachiMaalLineToSimpleBillRow(
+  line: MaalLineDetail,
+  daamiPercent: number,
+): KachiSimpleBillRow {
+  const base = kachiMaalLineBase(line);
+  const ourDammi = round2(base.total * (daamiPercent / 100));
+  return {
+    ...base,
+    ourDammi,
+    netTotal: round2(base.total + ourDammi),
+  };
+}
+
+/** Bill From fee is always 1% Mazduri (not prefs). */
+export function kachiMaalLineToBillFromSimpleRow(line: MaalLineDetail): KachiBillFromSimpleRow {
+  const base = kachiMaalLineBase(line);
+  const mazduri = round2(base.total * 0.01);
+  return {
+    ...base,
+    mazduri,
+    netTotal: Math.max(0, round2(base.total - mazduri)),
+  };
+}
+
 export function formatBoriThelaLine(
   boriQty: number,
   boriRate: number,

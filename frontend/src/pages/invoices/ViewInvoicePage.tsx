@@ -9,10 +9,18 @@ import { FieldLabel, FinancialButton, PageShell, Panel, SecondaryButton, TextInp
 import { SearchSelect } from '../../components/ui/SearchSelect';
 import { InvoiceBillView } from './InvoiceBillView';
 
-const INVOICE_TYPE_OPTIONS = (Object.keys(INVOICE_TYPE_LABELS) as InvoiceTypeKey[]).map((key) => ({
-  value: key,
-  label: INVOICE_TYPE_LABELS[key]!,
-}));
+const HIDDEN_VIEW_INVOICE_TYPES = new Set<InvoiceTypeKey>([
+  'PURCHASE_GENERAL',
+  'SALE_GENERAL',
+]);
+
+/** Dropdown choices only — lookup-by-URL still accepts all InvoiceTypeKey values. */
+const INVOICE_TYPE_OPTIONS = (Object.keys(INVOICE_TYPE_LABELS) as InvoiceTypeKey[])
+  .filter((key) => !HIDDEN_VIEW_INVOICE_TYPES.has(key))
+  .map((key) => ({
+    value: key,
+    label: INVOICE_TYPE_LABELS[key]!,
+  }));
 
 function isInvoiceTypeKey(value: string): value is InvoiceTypeKey {
   return value in INVOICE_TYPE_PREFIX_CHECK;

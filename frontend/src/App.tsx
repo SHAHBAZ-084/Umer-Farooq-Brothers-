@@ -17,6 +17,7 @@ import { LoginPage } from './pages/LoginPage';
 import { BackupPage } from './pages/BackupPage';
 import { PosHomePage } from './pages/PosHomePage';
 import { DailyReportPage } from './pages/reports/DailyReportPage';
+import { APP_DASHBOARD_PATH, APP_HOME_PATH } from './config/routes';
 import {
   AccountReportsPage,
   AccountBalancePage,
@@ -34,6 +35,11 @@ import { PendingApprovalsPage } from './pages/approvals/PendingApprovalsPage';
 import { UserManagementPage } from './pages/user/UserManagementPage';
 import { SchedulesPage } from './pages/vouchers/SchedulesPage';
 import { VoucherFormPage, VoucherListPage } from './pages/vouchers/VoucherPages';
+
+/** Default landing after login — empty until the user opens Dashboard via the logo. */
+function BlankHomePage() {
+  return <div className="app-page min-h-full" aria-label="Home" />;
+}
 
 function ReportsLayout() {
   return (
@@ -53,7 +59,8 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppShell />}>
-                  <Route path="/" element={<PosHomePage />} />
+                  <Route path={APP_HOME_PATH} element={<BlankHomePage />} />
+                  <Route path={APP_DASHBOARD_PATH} element={<PosHomePage />} />
 
                   <Route path="/vouchers" element={<Navigate to="/vouchers/payment" replace />} />
                   <Route path="/invoices" element={<Navigate to="/invoices/sale-commission" replace />} />
@@ -110,7 +117,7 @@ export default function App() {
                   <Route path="/user" element={<UserInfoPage />} />
                 </Route>
               </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to={APP_HOME_PATH} replace />} />
             </Routes>
           </BrowserRouter>
         </AuthProvider>
