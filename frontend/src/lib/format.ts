@@ -42,7 +42,7 @@ const VOUCHER_TYPE_LABELS: Record<string, string> = {
   KACHI: 'Kachi',
   PURCHASE_MAAL: 'Purchase Maal',
   SALE_PAUNCH: 'Sale Paunch',
-  SALE_COMMISSION: 'Sale Commission',
+  SALE_COMMISSION: 'Pakki',
   PURCHASE_GENERAL: 'Purchase Invoice',
   SALE_GENERAL: 'Sale Invoice',
   GENERAL_TRADE: 'General Trade',

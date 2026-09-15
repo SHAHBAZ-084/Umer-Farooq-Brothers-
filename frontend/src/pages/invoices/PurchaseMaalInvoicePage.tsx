@@ -499,7 +499,7 @@ export function PurchaseMaalInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bori / Thela</FieldLabel>
+                      <FieldLabel>بوری / تھیلہ</FieldLabel>
                       <SegmentedControl
                         value={boriThelaMode}
                         onChange={(v) => setBoriThelaMode(v as BoriThelaMode)}
@@ -510,7 +510,7 @@ export function PurchaseMaalInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>{boriThelaMode === 'BORI' ? 'Bori count' : 'Thela count'}</FieldLabel>
+                      <FieldLabel>{boriThelaMode === 'BORI' ? 'بوری کی تعداد' : 'تھیلہ کی تعداد'}</FieldLabel>
                       <TextInput value={bagCount} onChange={(e) => setBagCount(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
@@ -528,24 +528,24 @@ export function PurchaseMaalInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="Pricing">
+                <InvoiceFieldGroup label="قیمت">
                   <InvoiceFieldRow cols={6}>
                     <InvoiceField>
                       <FieldLabel>ریٹ / من</FieldLabel>
                       <TextInput value={ratePerMaund} onChange={(e) => setRatePerMaund(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Amount" value={entryPreview.amount} />
+                    <InvoiceReadOnlyField label="رقم" value={entryPreview.amount} />
                     <InvoiceReadOnlyField label="Net to party" value={entryPreview.netCreditToParty} />
                     <InvoiceField>
-                      <FieldLabel>Bardana qty</FieldLabel>
+                      <FieldLabel>باردانہ تعداد</FieldLabel>
                       <TextInput value={rowBardanaQty} onChange={(e) => setRowBardanaQty(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana rate</FieldLabel>
+                      <FieldLabel>باردانہ ریٹ</FieldLabel>
                       <TextInput value={rowBardanaRate} onChange={(e) => setRowBardanaRate(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceToggleField
-                      label={`Dammi (${prefRates.daamiPercent}%)`}
+                      label={`دامی (${prefRates.daamiPercent}%)`}
                       checked={dammiChecked}
                       onChange={setDammiChecked}
                     />
@@ -600,9 +600,11 @@ export function PurchaseMaalInvoicePage() {
                 <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={5}>
                     <InvoiceField wide>
-                      <FieldLabel>Debit account</FieldLabel>
+                      <FieldLabel>ڈیبٹ اکاؤنٹ</FieldLabel>
                       {!productId ? (
-                        <div className="app-input-static text-textMuted">Select Jins first</div>
+                        <div className="app-input-static app-label-ur text-textMuted" dir="auto" lang="ur">
+                          پہلے جنس منتخب کریں
+                        </div>
                       ) : maalKhataMissing ? (
                         <div className="app-input-static border-danger text-danger">
                           No Maal Khata ledger linked to this product
@@ -613,8 +615,8 @@ export function PurchaseMaalInvoicePage() {
                         </div>
                       )}
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Goods total" value={invoiceTotals.totalGoodsAmount} />
-                    <InvoiceReadOnlyField label="Dammi total" value={invoiceTotals.totalDammiAmount} />
+                    <InvoiceReadOnlyField label="مال کل" value={invoiceTotals.totalGoodsAmount} />
+                    <InvoiceReadOnlyField label="کل دامی" value={invoiceTotals.totalDammiAmount} />
                     <InvoiceToggleField
                       label="Apply Market Fee"
                       checked={marketFeeEnabled}
@@ -631,15 +633,15 @@ export function PurchaseMaalInvoicePage() {
                 <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={5}>
                     <InvoiceReadOnlyField
-                      label={`Market fee (${invoiceTotals.totalCalculatedBags.toFixed(2)} bags)`}
+                      label={`مارکیٹ فیس (${invoiceTotals.totalCalculatedBags.toFixed(2)})`}
                       value={invoiceTotals.marketFeeAmount}
                     />
                     <InvoiceReadOnlyField
-                      label={`Mazduri (${prefRates.mazduriPercent}%)`}
+                      label={`مزدوری (${prefRates.mazduriPercent}%)`}
                       value={invoiceTotals.mazduriAmount}
                     />
                     <InvoiceField>
-                      <FieldLabel>Bardana</FieldLabel>
+                      <FieldLabel>باردانہ</FieldLabel>
                       <SegmentedControl
                         value={lowerBoriThela}
                         onChange={(v) => setLowerBoriThela(v as BoriThelaMode)}
@@ -650,11 +652,11 @@ export function PurchaseMaalInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana qty</FieldLabel>
+                      <FieldLabel>باردانہ تعداد</FieldLabel>
                       <TextInput value={lowerBardanaQty} onChange={(e) => setLowerBardanaQty(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana rate</FieldLabel>
+                      <FieldLabel>باردانہ ریٹ</FieldLabel>
                       <TextInput value={lowerBardanaRate} onChange={(e) => setLowerBardanaRate(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                   </InvoiceFieldRow>

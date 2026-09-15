@@ -427,7 +427,7 @@ export function KachiMaalInvoicePage() {
   }
 
   return (
-    <PageShell centerTitle invoiceTitleBand title="Kachi Maal" className="app-page--kachi-maal">
+    <PageShell centerTitle invoiceTitleBand title="Kachi" className="app-page--kachi-maal">
       <Panel className="inv-form-panel mx-auto w-full overflow-visible bg-bg-surface">
         <div ref={trapRef} className="overflow-visible">
           <form onSubmit={onSave} className="space-y-0">
@@ -488,7 +488,7 @@ export function KachiMaalInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bori / Thela</FieldLabel>
+                      <FieldLabel>بوری / تھیلہ</FieldLabel>
                       <SegmentedControl
                         value={boriThelaMode}
                         onChange={(v) => setBoriThelaMode(v as BoriThelaMode)}
@@ -499,7 +499,7 @@ export function KachiMaalInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>{boriThelaMode === 'BORI' ? 'Bori count' : 'Thela count'}</FieldLabel>
+                      <FieldLabel>{boriThelaMode === 'BORI' ? 'بوری کی تعداد' : 'تھیلہ کی تعداد'}</FieldLabel>
                       <TextInput value={bagCount} onChange={(e) => setBagCount(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
@@ -517,20 +517,20 @@ export function KachiMaalInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="Pricing">
+                <InvoiceFieldGroup label="قیمت">
                   <InvoiceFieldRow cols={5}>
                     <InvoiceField>
                       <FieldLabel>ریٹ / من</FieldLabel>
                       <TextInput value={ratePerMaund} onChange={(e) => setRatePerMaund(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Amount" value={entryPreview.amount} />
+                    <InvoiceReadOnlyField label="رقم" value={entryPreview.amount} />
                     <InvoiceReadOnlyField label="Net to party" value={entryPreview.netCreditToParty} />
                     <InvoiceField>
-                      <FieldLabel>Bardana qty</FieldLabel>
+                      <FieldLabel>باردانہ تعداد</FieldLabel>
                       <TextInput value={rowBardanaQty} onChange={(e) => setRowBardanaQty(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana rate</FieldLabel>
+                      <FieldLabel>باردانہ ریٹ</FieldLabel>
                       <TextInput value={rowBardanaRate} onChange={(e) => setRowBardanaRate(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                   </InvoiceFieldRow>
@@ -601,25 +601,25 @@ export function KachiMaalInvoicePage() {
                         onChange={setDebitAccountId}
                       />
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Goods total" value={invoiceTotals.totalGoodsAmount} />
-                    <InvoiceReadOnlyField label={`Pale Dari (${prefRates.paleDariPercent}%)`} value={invoiceTotals.totalPaleDari} />
-                    <InvoiceReadOnlyField label={`Brokery (${prefRates.brokeryPercent}%)`} value={invoiceTotals.totalBrokery} />
+                    <InvoiceReadOnlyField label="مال کل" value={invoiceTotals.totalGoodsAmount} />
+                    <InvoiceReadOnlyField label={`پلے داری (${prefRates.paleDariPercent}%)`} value={invoiceTotals.totalPaleDari} />
+                    <InvoiceReadOnlyField label={`دلالی (${prefRates.brokeryPercent}%)`} value={invoiceTotals.totalBrokery} />
                     <InvoiceReadOnlyField
-                      label={`Market fee (${invoiceTotals.totalCalculatedBags.toFixed(2)} bags)`}
+                      label={`مارکیٹ فیس (${invoiceTotals.totalCalculatedBags.toFixed(2)})`}
                       value={invoiceTotals.marketFeeAmount}
                     />
-                    <InvoiceReadOnlyField label={`Daami (${prefRates.daamiPercent}%)`} value={invoiceTotals.profitAmount} />
+                    <InvoiceReadOnlyField label={`دامی (${prefRates.daamiPercent}%)`} value={invoiceTotals.profitAmount} />
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="Misc & bardana">
+                <InvoiceFieldGroup label="متفرق اور باردانہ">
                   <InvoiceFieldRow cols={4}>
                     <InvoiceField>
-                      <FieldLabel>متفرق (optional)</FieldLabel>
+                      <FieldLabel>متفرق (اختیاری)</FieldLabel>
                       <TextInput value={miscAmount} onChange={(e) => setMiscAmount(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana</FieldLabel>
+                      <FieldLabel>باردانہ</FieldLabel>
                       <SegmentedControl
                         value={lowerBoriThela}
                         onChange={(v) => setLowerBoriThela(v as BoriThelaMode)}
@@ -630,11 +630,11 @@ export function KachiMaalInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana qty</FieldLabel>
+                      <FieldLabel>باردانہ تعداد</FieldLabel>
                       <TextInput value={lowerBardanaQty} onChange={(e) => setLowerBardanaQty(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana rate</FieldLabel>
+                      <FieldLabel>باردانہ ریٹ</FieldLabel>
                       <TextInput value={lowerBardanaRate} onChange={(e) => setLowerBardanaRate(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     {invoiceTotals.lowerBardanaAmount != null ? (
@@ -678,7 +678,7 @@ export function KachiMaalInvoicePage() {
                       lowerBardanaQty,
                       lowerBardanaRate,
                     },
-                    `Kachi Maal — ${predictedRef || 'draft'}`,
+                    `Kachi — ${predictedRef || 'draft'}`,
                   )
                 }
               />

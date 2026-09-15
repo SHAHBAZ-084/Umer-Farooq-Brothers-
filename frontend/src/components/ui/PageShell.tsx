@@ -86,9 +86,12 @@ export function LegacyTable({
 }
 
 export function FieldLabel({ children }: { children: ReactNode }) {
+  const urdu = typeof children === 'string' && /[\u0600-\u06FF]/.test(children);
   return (
-    <label className="app-field-label">
-      <span className="app-field-label-text">{children}</span>
+    <label className={`app-field-label${urdu ? ' app-field-label--ur' : ''}`.trim()}>
+      <span className={`app-field-label-text${urdu ? ' app-field-label-text--ur' : ''}`.trim()} dir={urdu ? 'auto' : undefined} lang={urdu ? 'ur' : undefined}>
+        {children}
+      </span>
     </label>
   );
 }

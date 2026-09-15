@@ -297,7 +297,7 @@ export function AccountReportsPage() {
       <Modal
         open={filtersOpen}
         title="Account Ledger"
-        onClose={() => setFiltersOpen(false)}
+        onClose={() => { if (loaded) setFiltersOpen(false); }}
         footer={
           <>
             <PrimaryButton type="button" onClick={() => void loadLedger(0)} disabled={loading || !financialYearId}>
@@ -340,12 +340,7 @@ export function AccountReportsPage() {
       </Modal>
 
       <Panel className="overflow-visible">
-        {!filtersOpen && !loaded ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-textSecondary">Select filters to generate the account ledger.</p>
-            <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Open filters</SecondaryButton>
-          </div>
-        ) : !filtersOpen && ledger && ledger.rows.length === 0 ? (
+        {!filtersOpen && ledger && ledger.rows.length === 0 ? (
           <>
             <div className="mb-4 flex flex-wrap gap-2">
               <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Edit filters</SecondaryButton>
@@ -560,7 +555,7 @@ export function TrialBalancePage() {
       <Modal
         open={filtersOpen}
         title="Detail Trial Balance"
-        onClose={() => setFiltersOpen(false)}
+        onClose={() => { if (loaded) setFiltersOpen(false); }}
         footer={
           <>
             <PrimaryButton type="button" onClick={() => void loadTrialBalance(0)} disabled={loading || !financialYearId}>
@@ -581,12 +576,7 @@ export function TrialBalancePage() {
       </Modal>
 
       <Panel>
-        {!filtersOpen && !loaded ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-textSecondary">Select a financial year to generate the trial balance.</p>
-            <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Open filters</SecondaryButton>
-          </div>
-        ) : !filtersOpen && data ? (
+        {!filtersOpen && data ? (
           <>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-2">
@@ -902,11 +892,11 @@ export function SalePurchaseReportsPage() {
   }
 
   return (
-    <PageShell title="Sale/Purchase Reports" subtitle="Combined invoice reporting (Kachi Maal excluded)">
+    <PageShell title="Sale/Purchase Reports" subtitle="Combined invoice reporting (Kachi excluded)">
       <Modal
         open={filtersOpen}
         title="Sale/Purchase Reports"
-        onClose={() => setFiltersOpen(false)}
+        onClose={() => { if (loaded) setFiltersOpen(false); }}
         footer={
           <>
             <FinancialButton type="button" onClick={onView} disabled={loading}>
@@ -968,15 +958,6 @@ export function SalePurchaseReportsPage() {
 
         {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       </Modal>
-
-      {!filtersOpen && !loaded ? (
-        <Panel className="mt-4 print:hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-textSecondary">Select filters to generate the sale/purchase report.</p>
-            <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Open filters</SecondaryButton>
-          </div>
-        </Panel>
-      ) : null}
 
       {!filtersOpen && report ? (
         <Panel className="mt-4 sale-purchase-report-print">
@@ -1167,7 +1148,7 @@ export function StockReportPage() {
       <Modal
         open={filtersOpen}
         title="Stock Report"
-        onClose={() => setFiltersOpen(false)}
+        onClose={() => { if (loaded) setFiltersOpen(false); }}
         footer={
           <>
             <FinancialButton type="button" onClick={onLoad} disabled={loading}>
@@ -1212,12 +1193,7 @@ export function StockReportPage() {
       </Modal>
 
       <Panel>
-        {!filtersOpen && !loaded ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-textSecondary">Select filters to generate the stock report.</p>
-            <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Open filters</SecondaryButton>
-          </div>
-        ) : !filtersOpen && report ? (
+        {!filtersOpen && report ? (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Edit filters</SecondaryButton>
@@ -1561,7 +1537,7 @@ export function AccountBalancePage() {
       <Modal
         open={filtersOpen}
         title="Account Balance"
-        onClose={() => setFiltersOpen(false)}
+        onClose={() => { if (loaded) setFiltersOpen(false); }}
         footer={
           <>
             <FinancialButton type="button" onClick={() => void loadReport(0)} disabled={loading || !financialYearId}>
@@ -1607,12 +1583,7 @@ export function AccountBalancePage() {
       </Modal>
 
       <Panel className="overflow-visible">
-        {!filtersOpen && !loaded ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-textSecondary">Select filters to generate the account balance report.</p>
-            <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Open filters</SecondaryButton>
-          </div>
-        ) : !filtersOpen && report && report.accounts.length === 0 ? (
+        {!filtersOpen && report && report.accounts.length === 0 ? (
           <>
             <div className="mb-4 flex flex-wrap gap-2">
               <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Edit filters</SecondaryButton>
@@ -1859,7 +1830,7 @@ export function VouchersReportPage() {
       <Modal
         open={filtersOpen}
         title="Vouchers Report"
-        onClose={() => setFiltersOpen(false)}
+        onClose={() => { if (loaded) setFiltersOpen(false); }}
         footer={
           <>
             <FinancialButton type="button" onClick={() => void loadReport(0)} disabled={loading || !financialYearId}>
@@ -1917,12 +1888,7 @@ export function VouchersReportPage() {
           </div>
         ) : null}
 
-        {!filtersOpen && !loaded ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-textSecondary">Select filters to generate the vouchers report.</p>
-            <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Open filters</SecondaryButton>
-          </div>
-        ) : !filtersOpen && vouchers.length === 0 ? (
+        {!filtersOpen && vouchers.length === 0 ? (
           <>
             <div className="mb-4 flex flex-wrap gap-2">
               <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Edit filters</SecondaryButton>

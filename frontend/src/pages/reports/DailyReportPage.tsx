@@ -35,10 +35,10 @@ const KIND_FILTERS: Array<{ value: DailyFilterKey; label: string }> = [
   { value: 'PAYMENT', label: 'Payment' },
   { value: 'RECEIPT', label: 'Receipt' },
   { value: 'JOURNAL', label: 'Journal' },
-  { value: 'KACHI_MAAL', label: 'Kachi Maal' },
+  { value: 'KACHI_MAAL', label: 'Kachi' },
   { value: 'PURCHASE_MAAL', label: 'Purchase Maal' },
   { value: 'SALE_PAUNCH', label: 'Sale Paunch' },
-  { value: 'SALE_COMMISSION', label: 'Sale Commission' },
+  { value: 'SALE_COMMISSION', label: 'Pakki' },
   { value: 'PURCHASE_GENERAL', label: 'Purchase Invoice' },
   { value: 'SALE_GENERAL', label: 'Sale Invoice' },
   { value: 'GENERAL_TRADE', label: 'General Trade' },
@@ -139,7 +139,7 @@ export function DailyReportPage() {
       <Modal
         open={filtersOpen}
         title="Daily Report"
-        onClose={() => setFiltersOpen(false)}
+        onClose={() => { if (loaded) setFiltersOpen(false); }}
         footer={
           <>
             <FinancialButton type="submit" form="daily-report-filters" disabled={loading}>
@@ -208,12 +208,7 @@ export function DailyReportPage() {
       ) : null}
 
       <Panel className="p-0">
-        {!filtersOpen && !loaded ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-            <p className="text-sm text-textSecondary">Select a date to generate the daily report.</p>
-            <SecondaryButton type="button" onClick={() => setFiltersOpen(true)}>Open filters</SecondaryButton>
-          </div>
-        ) : !filtersOpen && rows.length === 0 ? (
+        {!filtersOpen && rows.length === 0 ? (
           <p className="p-4 text-sm text-textMuted">No posted work for this date.</p>
         ) : !filtersOpen ? (
           <>

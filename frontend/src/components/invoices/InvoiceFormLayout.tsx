@@ -50,9 +50,18 @@ export function InvoiceFieldGroup({
   className?: string;
   label?: string;
 }) {
+  const urdu = Boolean(label && /[\u0600-\u06FF]/.test(label));
   return (
     <div className={`inv-field-group ${className}`.trim()}>
-      {label ? <p className="inv-field-group-label">{label}</p> : null}
+      {label ? (
+        <p
+          className={`inv-field-group-label${urdu ? ' inv-field-group-label--ur' : ''}`.trim()}
+          dir={urdu ? 'auto' : undefined}
+          lang={urdu ? 'ur' : undefined}
+        >
+          {label}
+        </p>
+      ) : null}
       {children}
     </div>
   );
@@ -127,6 +136,7 @@ export function InvoiceToggleField({
   checked: boolean;
   onChange: (checked: boolean) => void;
 }) {
+  const urdu = /[\u0600-\u06FF]/.test(label);
   return (
     <InvoiceField className="inv-field--toggle">
       <span className="app-field-label" aria-hidden="true">
@@ -139,7 +149,13 @@ export function InvoiceToggleField({
           onChange={(e) => onChange(e.target.checked)}
           className="h-4 w-4 shrink-0 rounded border-border text-financial"
         />
-        <span className="truncate text-sm font-medium text-textPrimary">{label}</span>
+        <span
+          className={`truncate text-sm font-medium text-textPrimary${urdu ? ' app-label-ur' : ''}`.trim()}
+          dir={urdu ? 'auto' : undefined}
+          lang={urdu ? 'ur' : undefined}
+        >
+          {label}
+        </span>
       </label>
     </InvoiceField>
   );
@@ -150,9 +166,16 @@ export function InvoiceAddRowAction({
   children = 'Add to grid',
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement>) {
+  const urdu = typeof children === 'string' && /[\u0600-\u06FF]/.test(children);
   return (
     <div className="inv-add-row">
-      <FinancialButton type="button" className="px-6" {...props}>
+      <FinancialButton
+        type="button"
+        className={`px-6${urdu ? ' app-label-ur' : ''}`.trim()}
+        dir={urdu ? 'auto' : undefined}
+        lang={urdu ? 'ur' : undefined}
+        {...props}
+      >
         {children}
       </FinancialButton>
     </div>

@@ -1337,6 +1337,23 @@
 
   }
 
+  /* Urdu / Arabic field labels — RTL text only; keep LTR field grid. */
+  .app-field-label--ur,
+  .app-field-label-text--ur,
+  .inv-field-group-label--ur,
+  .app-label-ur {
+    font-family: 'Segoe UI', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', Tahoma, sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .app-field-label-text--ur,
+  .inv-field-group-label--ur,
+  .app-label-ur {
+    direction: rtl;
+    unicode-bidi: plaintext;
+  }
+
 
 
   /* Control track: every non-label child shares the same compact baseline */

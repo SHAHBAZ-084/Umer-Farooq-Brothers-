@@ -387,8 +387,12 @@ export function GeneralTradeInvoicePage() {
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-md border border-border border-l-4 border-l-ledgerCredit bg-surface1/40 p-3">
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ledgerCredit">
-                  Purchase
+                <h3
+                  className="app-label-ur mb-3 text-sm font-semibold tracking-wide text-ledgerCredit"
+                  dir="auto"
+                  lang="ur"
+                >
+                  خرید
                 </h3>
                 <div className="space-y-3">
                   <div>
@@ -402,7 +406,7 @@ export function GeneralTradeInvoicePage() {
                     />
                   </div>
                   <div>
-                    <FieldLabel>Purchase Rate</FieldLabel>
+                    <FieldLabel>خرید ریٹ</FieldLabel>
                     <TextInput
                       type="number"
                       min="0"
@@ -415,8 +419,12 @@ export function GeneralTradeInvoicePage() {
               </div>
 
               <div className="rounded-md border border-border border-l-4 border-l-ledgerDebit bg-surface1/40 p-3">
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ledgerDebit">
-                  Sale
+                <h3
+                  className="app-label-ur mb-3 text-sm font-semibold tracking-wide text-ledgerDebit"
+                  dir="auto"
+                  lang="ur"
+                >
+                  فروخت
                 </h3>
                 <div className="space-y-3">
                   <div>
@@ -430,7 +438,7 @@ export function GeneralTradeInvoicePage() {
                     />
                   </div>
                   <div>
-                    <FieldLabel>Sale Rate</FieldLabel>
+                    <FieldLabel>فروخت ریٹ</FieldLabel>
                     <TextInput
                       type="number"
                       min="0"
@@ -480,7 +488,7 @@ export function GeneralTradeInvoicePage() {
                   />
                 </div>
                 <div>
-                  <FieldLabel>Qty</FieldLabel>
+                  <FieldLabel>تعداد</FieldLabel>
                   <TextInput
                     type="number"
                     min="0"

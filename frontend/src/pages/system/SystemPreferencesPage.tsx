@@ -47,10 +47,10 @@ type PrefFieldDef = { key: NumericPrefKey; label: string; hint?: string };
 const PREF_TABS: Array<{ value: PrefTab; label: string }> = [
   { value: 'business-info', label: 'Business Info' },
   { value: 'general', label: 'General' },
-  { value: 'kachi-maal', label: 'Kachi Maal' },
+  { value: 'kachi-maal', label: 'Kachi' },
   { value: 'purchase-maal', label: 'Purchase Maal' },
   { value: 'sale-paunch', label: 'Sale Paunch' },
-  { value: 'sale-commission', label: 'Sale Commission' },
+  { value: 'sale-commission', label: 'Pakki' },
   { value: 'purchase-general', label: 'Purchase Invoice' },
   { value: 'sale-general', label: 'Sale Invoice' },
 ];
@@ -77,17 +77,17 @@ const SHARED_RATE_FIELDS: PrefFieldDef[] = [
   {
     key: 'daamiPercent',
     label: 'Daami (%)',
-    hint: 'Shop-wide — Kachi Maal profit / Purchase Maal, Sale Paunch & Sale Commission Dammi',
+    hint: 'Shop-wide — Kachi profit / Purchase Maal, Sale Paunch & Pakki Dammi',
   },
   {
     key: 'marketFeeRate',
     label: 'Market Fee (per bag)',
-    hint: 'Shop-wide — Kachi Maal (calc bags), Purchase Maal & Sale Commission',
+    hint: 'Shop-wide — Kachi (calc bags), Purchase Maal & Pakki',
   },
   {
     key: 'kaatPercent',
     label: 'Kaat (%)',
-    hint: 'Shop-wide — used on Kachi Maal / Purchase Maal bill print',
+    hint: 'Shop-wide — used on Kachi / Purchase Maal bill print',
   },
 ];
 
@@ -98,8 +98,8 @@ const GENERAL_OTHER_FIELDS: PrefFieldDef[] = [
 ];
 
 const KACHI_FIELDS: PrefFieldDef[] = [
-  { key: 'paleDariPercent', label: 'Pale Dari (%)', hint: 'Labour rate — Kachi Maal' },
-  { key: 'brokeryPercent', label: 'Brokery (%)', hint: 'Broker rate — Kachi Maal' },
+  { key: 'paleDariPercent', label: 'Pale Dari (%)', hint: 'Labour rate — Kachi' },
+  { key: 'brokeryPercent', label: 'Brokery (%)', hint: 'Broker rate — Kachi' },
 ];
 
 const PURCHASE_MAAL_FIELDS: PrefFieldDef[] = [
@@ -429,7 +429,7 @@ export function SystemPreferencesPage() {
 
             {tab === 'kachi-maal' ? (
               <Tile>
-                <p className="text-sm font-medium text-textPrimary">Kachi Maal</p>
+                <p className="text-sm font-medium text-textPrimary">Kachi</p>
                 <p className="mt-1 text-xs text-textMuted">
                   Type-specific rates. Daami %, Market Fee, and Kaat % live under General → Shared
                   rates.
@@ -469,7 +469,7 @@ export function SystemPreferencesPage() {
 
             {tab === 'sale-commission' ? (
               <Tile>
-                <p className="text-sm font-medium text-textPrimary">Sale Commission</p>
+                <p className="text-sm font-medium text-textPrimary">Pakki</p>
                 <p className="mt-1 text-xs text-textMuted">
                   Type-specific rates. Daami % and Market Fee live under General → Shared rates.
                 </p>

@@ -49,13 +49,13 @@ export const MINIMIZED_FORM_ROUTES: Record<MinimizedFormKind, string> = {
 };
 
 export const MINIMIZED_FORM_TITLES: Record<MinimizedFormKind, string> = {
-  'kachi-maal': 'Kachi Maal',
+  'kachi-maal': 'Kachi',
   'purchase-maal': 'Purchase Maal',
   'purchase-general': 'Purchase Invoice (General)',
   'sale-paunch': 'Sale on Paunch',
   'sale-general': 'Sale Invoice (General)',
   'general-trade': 'General Trade',
-  'sale-commission': 'Sale on Commission',
+  'sale-commission': 'Pakki',
   payment: 'Payment',
   receipt: 'Receipt',
   journal: 'Journal',

@@ -418,7 +418,7 @@ export function SaleCommissionInvoicePage() {
   }
 
   return (
-    <PageShell centerTitle invoiceTitleBand title="Sale on Commission" className="app-page--sale-commission">
+    <PageShell centerTitle invoiceTitleBand title="Pakki" className="app-page--sale-commission">
       <Panel className="inv-form-panel mx-auto w-full overflow-visible bg-bg-surface">
         <div ref={trapRef} className="overflow-visible">
           <form onSubmit={onSave} className="space-y-0">
@@ -453,7 +453,7 @@ export function SaleCommissionInvoicePage() {
 
             <InvoiceFormSection label="Credit Side" labelClassName="text-ledgerCredit">
               <InvoiceFieldStack>
-                <InvoiceFieldGroup label="Identity">
+                <InvoiceFieldGroup label="شناخت">
                   <InvoiceFieldRow cols={6}>
                     <InvoiceField wide>
                       <FlatAccountSelect
@@ -467,7 +467,7 @@ export function SaleCommissionInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bori / Thela</FieldLabel>
+                      <FieldLabel>بوری / تھیلہ</FieldLabel>
                       <SegmentedControl
                         value={boriThelaMode}
                         onChange={(v) => setBoriThelaMode(v as BoriThelaMode)}
@@ -478,7 +478,7 @@ export function SaleCommissionInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>{boriThelaMode === 'BORI' ? 'Bori count' : 'Thela count'}</FieldLabel>
+                      <FieldLabel>{boriThelaMode === 'BORI' ? 'بوری کی تعداد' : 'تھیلہ کی تعداد'}</FieldLabel>
                       <TextInput value={bagCount} onChange={(e) => setBagCount(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
@@ -496,25 +496,25 @@ export function SaleCommissionInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="Pricing">
+                <InvoiceFieldGroup label="قیمت">
                   <InvoiceFieldRow cols={5}>
                     <InvoiceField>
                       <FieldLabel>ریٹ / من</FieldLabel>
                       <TextInput value={ratePerMaund} onChange={(e) => setRatePerMaund(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceToggleField
-                      label={`Dammi (${prefRates.daamiPercent}%)`}
+                      label={`دامی (${prefRates.daamiPercent}%)`}
                       checked={dammiChecked}
                       onChange={setDammiChecked}
                     />
-                    <InvoiceReadOnlyField label="Amount" value={entryPreview.amount} />
+                    <InvoiceReadOnlyField label="رقم" value={entryPreview.amount} />
                     <InvoiceReadOnlyField label="Net to party" value={entryPreview.netCreditToParty} />
                     <InvoiceField>
-                      <FieldLabel>Bardana qty</FieldLabel>
+                      <FieldLabel>باردانہ تعداد</FieldLabel>
                       <TextInput value={rowBardanaQty} onChange={(e) => setRowBardanaQty(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana rate</FieldLabel>
+                      <FieldLabel>باردانہ ریٹ</FieldLabel>
                       <TextInput value={rowBardanaRate} onChange={(e) => setRowBardanaRate(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     {entryPreview.bardanaAmount != null ? (
@@ -523,7 +523,7 @@ export function SaleCommissionInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceAddRowAction onClick={addRow} />
+                <InvoiceAddRowAction onClick={addRow}>شامل کریں</InvoiceAddRowAction>
               </InvoiceFieldStack>
             </InvoiceFormSection>
 
@@ -581,24 +581,24 @@ export function SaleCommissionInvoicePage() {
                         placeholder="Search Int / Ext / Sale Party…"
                       />
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Goods total" value={invoiceTotals.totalGoodsAmount} />
-                    <InvoiceReadOnlyField label="Dammi total" value={invoiceTotals.totalDammiAmount} />
-                    <InvoiceReadOnlyField label="Post-dammi total" value={invoiceTotals.postDammiTotal} />
+                    <InvoiceReadOnlyField label="مال کل" value={invoiceTotals.totalGoodsAmount} />
+                    <InvoiceReadOnlyField label="کل دامی" value={invoiceTotals.totalDammiAmount} />
+                    <InvoiceReadOnlyField label="کل رقم" value={invoiceTotals.postDammiTotal} />
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="Fees (auto)">
+                <InvoiceFieldGroup label="فیس (خودکار)">
                   <InvoiceFieldRow cols={4}>
-                    <InvoiceReadOnlyField label={`Commission (${prefRates.commissionPercent}%)`} value={invoiceTotals.commissionAmount} />
-                    <InvoiceReadOnlyField label={`Dalali (${prefRates.dalaliPercent}%)`} value={invoiceTotals.dalaliAmount} />
-                    <InvoiceReadOnlyField label="Sutli" value={invoiceTotals.sutliAmount} />
-                    <InvoiceReadOnlyField label="Labour (Mazduri)" value={invoiceTotals.mazduriAmount} />
-                    <InvoiceReadOnlyField label="Market fee" value={invoiceTotals.marketFeeAmount} />
-                    <InvoiceReadOnlyField label="Bags" value={invoiceTotals.totalBagCount} format="number" />
+                    <InvoiceReadOnlyField label={`کمیشن (${prefRates.commissionPercent}%)`} value={invoiceTotals.commissionAmount} />
+                    <InvoiceReadOnlyField label={`دلالی (${prefRates.dalaliPercent}%)`} value={invoiceTotals.dalaliAmount} />
+                    <InvoiceReadOnlyField label="سوتلی" value={invoiceTotals.sutliAmount} />
+                    <InvoiceReadOnlyField label="مزدوری" value={invoiceTotals.mazduriAmount} />
+                    <InvoiceReadOnlyField label="مارکیٹ فیس" value={invoiceTotals.marketFeeAmount} />
+                    <InvoiceReadOnlyField label="تھیلے" value={invoiceTotals.totalBagCount} format="number" />
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="Manual & bardana">
+                <InvoiceFieldGroup label="دستی اور باردانہ">
                   <InvoiceFieldRow cols={4}>
                     <InvoiceField>
                       <FieldLabel>منشیانہ</FieldLabel>
@@ -609,7 +609,7 @@ export function SaleCommissionInvoicePage() {
                       <TextInput value={miscAmount} onChange={(e) => setMiscAmount(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana type</FieldLabel>
+                      <FieldLabel>باردانہ قسم</FieldLabel>
                       <SegmentedControl
                         value={lowerBoriThela}
                         onChange={(v) => setLowerBoriThela(v as BoriThelaMode)}
@@ -620,11 +620,11 @@ export function SaleCommissionInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana qty</FieldLabel>
+                      <FieldLabel>باردانہ تعداد</FieldLabel>
                       <TextInput value={lowerBardanaQty} onChange={(e) => setLowerBardanaQty(e.target.value)} inputMode="decimal" placeholder="defaults to bag count" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana rate</FieldLabel>
+                      <FieldLabel>باردانہ ریٹ</FieldLabel>
                       <TextInput value={lowerBardanaRate} onChange={(e) => setLowerBardanaRate(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     {invoiceTotals.settlementBardanaAmount != null ? (
@@ -668,7 +668,7 @@ export function SaleCommissionInvoicePage() {
                       lowerBardanaQty,
                       lowerBardanaRate,
                     },
-                    `Sale on Commission — ${predictedRef || 'draft'}`,
+                    `Pakki — ${predictedRef || 'draft'}`,
                   )
                 }
               />

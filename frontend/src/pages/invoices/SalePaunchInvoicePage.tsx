@@ -593,7 +593,7 @@ export function SalePaunchInvoicePage() {
                   <InvoiceFieldRow cols={6}>
                     <InvoiceField wide>
                       <FlatAccountSelect
-                        label="Line account"
+                        label="Party"
                         categoryNames={MAAL_KHATA_CATEGORIES}
                         categories={categories}
                         accounts={accounts}
@@ -603,7 +603,7 @@ export function SalePaunchInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bori / Thela</FieldLabel>
+                      <FieldLabel>بوری / تھیلہ</FieldLabel>
                       <SegmentedControl
                         value={boriOrThelaMode}
                         onChange={(v) => setBoriOrThelaMode(v as BoriThelaMode)}
@@ -614,22 +614,22 @@ export function SalePaunchInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>{boriOrThelaMode === 'BORI' ? 'Bori count' : 'Thela count'}</FieldLabel>
+                      <FieldLabel>{boriOrThelaMode === 'BORI' ? 'بوری کی تعداد' : 'تھیلہ کی تعداد'}</FieldLabel>
                       <TextInput value={bagCount} onChange={(e) => setBagCount(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Computer Weight (kg)</FieldLabel>
+                      <FieldLabel>کمپیوٹر وزن</FieldLabel>
                       <TextInput value={compWeightKg} onChange={(e) => setCompWeightKg(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
                       <FieldLabel>کاٹ (kg)</FieldLabel>
                       <TextInput value={kaatKg} onChange={(e) => setKaatKg(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Net weight (kg)" value={entryPreview.netWeightKg} format="number" />
+                    <InvoiceReadOnlyField label="کل وزن (کلوگرام)" value={entryPreview.netWeightKg} format="number" />
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="Pricing">
+                <InvoiceFieldGroup label="قیمت">
                   <InvoiceFieldRow cols={6}>
                     <InvoiceField>
                       <FieldLabel>ریٹ / من</FieldLabel>
@@ -639,17 +639,17 @@ export function SalePaunchInvoicePage() {
                       <FieldLabel>کانٹا</FieldLabel>
                       <TextInput value={kanta} onChange={(e) => setKanta(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Net" value={entryPreview.netUpperAmount} />
+                    <InvoiceReadOnlyField label="کل" value={entryPreview.netUpperAmount} />
                     <InvoiceField>
-                      <FieldLabel>Bardana qty</FieldLabel>
+                      <FieldLabel>باردانہ تعداد</FieldLabel>
                       <TextInput value={rowBardanaQty} onChange={(e) => setRowBardanaQty(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana rate</FieldLabel>
+                      <FieldLabel>باردانہ ریٹ</FieldLabel>
                       <TextInput value={rowBardanaRate} onChange={(e) => setRowBardanaRate(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceToggleField
-                      label={`Dammi (${prefRates.daamiPercent}%)`}
+                      label={`دامی (${prefRates.daamiPercent}%)`}
                       checked={dammiChecked}
                       onChange={setDammiChecked}
                     />
@@ -720,8 +720,8 @@ export function SalePaunchInvoicePage() {
                         placeholder="Search Int / Ext / Sale Party…"
                       />
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Net total" value={invoiceTotals.totalNetUpperAmount} />
-                    <InvoiceReadOnlyField label="Dammi total" value={invoiceTotals.totalDammiAmount} />
+                    <InvoiceReadOnlyField label="کل رقم" value={invoiceTotals.totalNetUpperAmount} />
+                    <InvoiceReadOnlyField label="کل دامی" value={invoiceTotals.totalDammiAmount} />
                     <InvoiceField>
                       <FieldLabel>کاٹ (kg)</FieldLabel>
                       <TextInput value={lowerKaatKg} onChange={(e) => setLowerKaatKg(e.target.value)} inputMode="decimal" />
@@ -736,7 +736,7 @@ export function SalePaunchInvoicePage() {
                 <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={6}>
                     <InvoiceField>
-                      <FieldLabel>Bardana</FieldLabel>
+                      <FieldLabel>باردانہ</FieldLabel>
                       <SegmentedControl
                         value={lowerBoriThela}
                         onChange={(v) => setLowerBoriThela(v as BoriThelaMode)}
@@ -747,15 +747,15 @@ export function SalePaunchInvoicePage() {
                       />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana qty</FieldLabel>
+                      <FieldLabel>باردانہ تعداد</FieldLabel>
                       <TextInput value={lowerBardanaQty} onChange={(e) => setLowerBardanaQty(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
                     <InvoiceField>
-                      <FieldLabel>Bardana rate</FieldLabel>
+                      <FieldLabel>باردانہ ریٹ</FieldLabel>
                       <TextInput value={lowerBardanaRate} onChange={(e) => setLowerBardanaRate(e.target.value)} inputMode="decimal" />
                     </InvoiceField>
-                    <InvoiceReadOnlyField label="Net wt (kg)" value={invoiceTotals.totalLowerNetWeightKg} format="number" />
-                    <InvoiceReadOnlyField label="Amount" value={invoiceTotals.totalLowerAmount} />
+                    <InvoiceReadOnlyField label="کل وزن (کلوگرام)" value={invoiceTotals.totalLowerNetWeightKg} format="number" />
+                    <InvoiceReadOnlyField label="رقم" value={invoiceTotals.totalLowerAmount} />
                     <InvoiceReadOnlyField label="Row revenue" value={invoiceTotals.totalRowRevenue} />
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>

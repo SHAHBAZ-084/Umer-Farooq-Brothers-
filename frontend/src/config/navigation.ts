@@ -89,11 +89,11 @@ export const SIDEBAR_NAV: SidebarSection[] = [
     label: 'Invoices',
     icon: FileText,
     items: [
-      { kind: 'link', label: 'Sale on Commission', to: '/invoices/sale-commission' },
+      { kind: 'link', label: 'Pakki', to: '/invoices/sale-commission' },
       { kind: 'link', label: 'Sale on Paunch', to: '/invoices/sale-paunch' },
       { kind: 'link', label: 'General Trade', to: '/invoices/general-trade' },
       { kind: 'link', label: 'Purchase to Maal', to: '/invoices/purchase-maal' },
-      { kind: 'link', label: 'Kachi Maal', to: '/invoices/kachi-maal' },
+      { kind: 'link', label: 'Kachi', to: '/invoices/kachi-maal' },
       { kind: 'link', label: 'View Invoice', to: '/invoices/view-invoice' },
     ],
   },
@@ -262,10 +262,10 @@ export function getPageTitle(pathname: string): string {
 }
 
 export const INVOICE_TYPE_LABELS: Record<string, string> = {
-  SALE_COMMISSION: 'Sale on Commission',
+  SALE_COMMISSION: 'Pakki',
   SALE_PAUNCH: 'Sale on Paunch',
   PURCHASE_MAAL: 'Purchase to Maal',
-  KACHI_MAAL: 'Kachi Maal',
+  KACHI_MAAL: 'Kachi',
   PURCHASE_GENERAL: 'Purchase Invoice (General)',
   SALE_GENERAL: 'Sale Invoice (General)',
   GENERAL_TRADE: 'General Trade',
