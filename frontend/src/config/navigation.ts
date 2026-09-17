@@ -51,13 +51,9 @@ export const SIDEBAR_NAV: SidebarSection[] = [
         ],
       },
       {
-        kind: 'submenu',
+        kind: 'link',
         label: 'Account',
-        children: [
-          { label: 'Add Account', to: '/accounts/manage/add' },
-          { label: 'Edit Account', to: '/accounts/manage/edit' },
-          { label: 'Remove Account', to: '/accounts/manage/remove', adminOnly: true },
-        ],
+        to: '/accounts/manage',
       },
       { kind: 'link', label: 'Account Adjustment', to: '/accounts/adjustment' },
     ],

@@ -64,7 +64,7 @@ export default function App() {
 
                   <Route path="/vouchers" element={<Navigate to="/vouchers/payment" replace />} />
                   <Route path="/invoices" element={<Navigate to="/invoices/sale-commission" replace />} />
-                  <Route path="/accounts" element={<Navigate to="/accounts/manage/add" replace />} />
+                  <Route path="/accounts" element={<Navigate to="/accounts/manage" replace />} />
                   <Route path="/products" element={<Navigate to="/accounts/products/add" replace />} />
                   <Route path="/system" element={<Navigate to="/system/preferences" replace />} />
                   <Route path="/settings/financial-year" element={<FinancialYearPage />} />
@@ -72,9 +72,10 @@ export default function App() {
                   <Route path="/accounts/categories/add" element={<CategoryManagePage mode="add" />} />
                   <Route path="/accounts/categories/edit" element={<CategoryManagePage mode="edit" />} />
                   <Route path="/accounts/categories/remove" element={<CategoryManagePage mode="remove" />} />
-                  <Route path="/accounts/manage/add" element={<AccountManagePage mode="add" />} />
-                  <Route path="/accounts/manage/edit" element={<AccountManagePage mode="edit" />} />
-                  <Route path="/accounts/manage/remove" element={<AccountManagePage mode="remove" />} />
+                  <Route path="/accounts/manage" element={<AccountManagePage />} />
+                  <Route path="/accounts/manage/add" element={<Navigate to="/accounts/manage" replace />} />
+                  <Route path="/accounts/manage/edit" element={<Navigate to="/accounts/manage" replace />} />
+                  <Route path="/accounts/manage/remove" element={<Navigate to="/accounts/manage" replace />} />
                   <Route path="/accounts/products/add" element={<ProductAddPage />} />
                   <Route path="/accounts/products/remove" element={<ProductRemovePage />} />
                   <Route path="/accounts/sale-parties" element={<SalePartiesPage />} />

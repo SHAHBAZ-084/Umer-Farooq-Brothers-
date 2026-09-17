@@ -491,6 +491,7 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
           <div className="grid gap-8 sm:grid-cols-2">
             <AccountSideFields
               label={leftLabel}
+              labelClassName={variant === 'journal' ? undefined : 'text-ledgerCredit'}
               categoryId={leftCategoryId}
               accountId={leftAccountId}
               categories={variant === 'journal' ? debitCategories : creditCategories}
@@ -505,6 +506,7 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
             />
             <AccountSideFields
               label={rightLabel}
+              labelClassName={variant === 'journal' ? undefined : 'text-ledgerDebit'}
               categoryId={rightCategoryId}
               accountId={rightAccountId}
               categories={variant === 'journal' ? creditCategories : debitCategories}
@@ -596,25 +598,16 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
 
             {batchMode ? (
               <aside className="voucher-batch-preview">
-                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-textSecondary">
-                      Batch preview
-                    </h3>
-                    <p className="mt-1 text-xs text-textMuted">
-                      {queuedItems.length} queued · Total{' '}
-                      <span className="font-medium tabular-nums text-textPrimary">
-                        {formatLedgerAmount(totalGridAmount)}
-                      </span>
-                    </p>
-                  </div>
-                  <FinancialButton
-                    type="button"
-                    disabled={queuedItems.length === 0 || saving}
-                    onClick={() => void handleSaveAll()}
-                  >
-                    {saving ? 'Saving…' : 'Save All'}
-                  </FinancialButton>
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-textSecondary">
+                    Batch preview
+                  </h3>
+                  <p className="mt-1 text-xs text-textMuted">
+                    {queuedItems.length} queued · Total{' '}
+                    <span className="font-medium tabular-nums text-textPrimary">
+                      {formatLedgerAmount(totalGridAmount)}
+                    </span>
+                  </p>
                 </div>
                 <div className="voucher-batch-preview-scroll">
                   {queuedItems.length === 0 ? (
@@ -622,7 +615,7 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
                       Add lines from the form — nothing is posted until Save All.
                     </p>
                   ) : (
-                    <table className="w-full min-w-[420px] text-left text-sm">
+                    <table className="w-full min-w-[480px] text-left text-sm">
                       <thead className="sticky top-0 bg-surface2">
                         <tr className="border-b border-border text-xs uppercase tracking-wide text-textMuted">
                           <th className="px-2 py-2">#</th>
@@ -630,6 +623,7 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
                           <th className="px-2 py-2">To</th>
                           <th className="px-2 py-2 text-right">Amount</th>
                           <th className="px-2 py-2">Ref</th>
+                          <th className="px-2 py-2">Description</th>
                           <th className="px-2 py-2" />
                         </tr>
                       </thead>
@@ -647,6 +641,9 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
                               {formatLedgerAmount(Number(item.amount))}
                             </td>
                             <td className="px-2 py-2">{item.reference}</td>
+                            <td className="px-2 py-2">
+                              {item.description.trim() ? item.description : '—'}
+                            </td>
                             <td className="px-2 py-2 text-right">
                               <button
                                 type="button"
@@ -661,6 +658,16 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
                       </tbody>
                     </table>
                   )}
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <FinancialButton
+                    type="button"
+                    className="px-6 py-2.5"
+                    disabled={queuedItems.length === 0 || saving}
+                    onClick={() => void handleSaveAll()}
+                  >
+                    {saving ? 'Saving…' : 'Save All'}
+                  </FinancialButton>
                 </div>
               </aside>
             ) : null}

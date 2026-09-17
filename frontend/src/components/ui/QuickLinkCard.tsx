@@ -64,6 +64,7 @@ const QUICK_LINK_META: Record<string, { variant: QuickLinkVariant; icon: LucideI
   '/accounts/categories/add': { variant: 'view', icon: FolderPlus },
   '/accounts/categories/edit': { variant: 'view', icon: Pencil },
   '/accounts/categories/remove': { variant: 'view', icon: Trash2 },
+  '/accounts/manage': { variant: 'view', icon: UserPlus },
   '/accounts/manage/add': { variant: 'view', icon: UserPlus },
   '/accounts/manage/edit': { variant: 'view', icon: Pencil },
   '/accounts/manage/remove': { variant: 'view', icon: UserMinus },
