@@ -22,7 +22,13 @@ function defaultOpeningSideForCategory(categoryId: number, accounts: Account[]):
 }
 
 function isPartyContactCategory(name?: string | null): boolean {
-  return Boolean(name && (PARTY_ACCOUNT_CATEGORIES as readonly string[]).includes(name));
+  return Boolean(
+    name
+    && (
+      (PARTY_ACCOUNT_CATEGORIES as readonly string[]).includes(name)
+      || name === 'Party / Customer'
+    ),
+  );
 }
 
 const DELETE_TIMEOUT_MS = 30_000;

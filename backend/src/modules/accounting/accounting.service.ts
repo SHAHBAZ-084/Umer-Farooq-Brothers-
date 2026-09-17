@@ -684,6 +684,27 @@ export const DEFAULT_CATEGORY_NAMES = [
   'Bank',
   'Expenses',
   'Capital',
+  'Accounts Receivable',
+  'Accounts Payable',
+  'Accumulated Depreciation',
+  'Discount Allowed',
+  'Electricity Expenses',
+  'Employee Related Expenses',
+  'Fixed Assets',
+  'Loan',
+  'Maintenance Expenses',
+  'Miscellaneous Expenses',
+  'Notes Payable',
+  'Notes Receivable',
+  'Party / Customer',
+  'Payable to Govt (Tax)',
+  'Phone Expenses',
+  'Profit',
+  'Purchase',
+  'Sales',
+  'Staff Member',
+  'Stock',
+  'Traveling Expenses',
 ] as const;
 
 /** Removed from auto-generation; safe-cleaned when unused. */
@@ -1560,6 +1581,7 @@ export const PARTY_CONTACT_CATEGORY_NAMES = [
   KACHI_MAAL_CATEGORY_NAMES.SALE_PARTY,
   KACHI_MAAL_CATEGORY_NAMES.INT_PURCHASE,
   KACHI_MAAL_CATEGORY_NAMES.EXT_PURCHASE,
+  'Party / Customer',
 ] as const;
 
 export function isPartyContactCategoryName(name?: string | null): boolean {
