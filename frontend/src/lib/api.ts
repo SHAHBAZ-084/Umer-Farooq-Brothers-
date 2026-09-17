@@ -928,6 +928,22 @@ export const api = {
   }) {
     return request<Voucher>('/api/accounting/vouchers', { method: 'POST', body: JSON.stringify(data) });
   },
+  createVouchersBatch(
+    items: Array<{
+      type: string;
+      debitAccountId: number;
+      creditAccountId: number;
+      amount: number;
+      date: string;
+      description?: string;
+      reference: string;
+    }>,
+  ) {
+    return request<Voucher[]>('/api/accounting/vouchers/batch', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    });
+  },
   updateVoucherAmount(voucherId: number, amount: number) {
     return this.updateVoucherDetails(voucherId, { amount });
   },

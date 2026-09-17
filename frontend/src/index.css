@@ -2070,6 +2070,37 @@
 
   }
 
+  /* Payment / Receipt batch entry: form left, live queue right */
+  .voucher-batch-split {
+    display: grid;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  @media (min-width: 960px) {
+    .voucher-batch-split {
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.95fr);
+    }
+  }
+
+  .voucher-batch-preview {
+    position: sticky;
+    top: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface-1, var(--surface));
+    padding: 0.85rem 1rem 1rem;
+    min-width: 0;
+  }
+
+  .voucher-batch-preview-scroll {
+    max-height: min(28rem, 55vh);
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--surface-2, var(--bg-surface));
+  }
+
 
 
   .inv-preview-grid {

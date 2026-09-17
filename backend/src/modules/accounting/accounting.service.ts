@@ -2181,6 +2181,43 @@ export async function createVoucher(data: {
   });
 }
 
+export async function createVouchersBatch(
+  items: Array<{
+    type: VoucherType;
+    debitAccountId: number;
+    creditAccountId: number;
+    amount: number;
+    date: Date | string;
+    description?: string;
+    reference: string;
+  }>,
+  createdById: number,
+) {
+  if (items.length === 0) {
+    throw new AppError(400, 'Batch cannot be empty');
+  }
+
+  const createdIds = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const ids: number[] = [];
+    for (const item of items) {
+      const voucher = await createVoucherInTx(tx, { ...item, createdById });
+      ids.push(voucher.id);
+    }
+    return ids;
+  });
+
+  const vouchers = await prisma.voucher.findMany({
+    where: { id: { in: createdIds } },
+    include: voucherInclude,
+  });
+  const byId = new Map(vouchers.map((v) => [v.id, v]));
+  return createdIds.map((id) => {
+    const voucher = byId.get(id);
+    if (!voucher) throw new AppError(500, 'Created voucher missing after batch');
+    return voucher;
+  });
+}
+
 export async function approvePendingAccountInTx(
   tx: Prisma.TransactionClient,
   accountId: number,

@@ -2,7 +2,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState, type RefObject } f
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDate, formatLedgerAmount, formatLedgerBalance, formatVoucherNumber, formatVoucherTypeLabel, ledgerBalanceColorClass, ledgerCreditColorClass, ledgerDebitColorClass, voucherTypeColorClass } from '../../lib/format';
 import { api, Account, AccountCategory, Voucher, VoucherAccount, VoucherUser } from '../../lib/api';
-import { DangerButton, FieldLabel, PageShell, Panel, PrimaryButton, SecondaryButton, TextInput } from '../../components/ui/PageShell';
+import { DangerButton, FieldLabel, FinancialButton, PageShell, Panel, PrimaryButton, SecondaryButton, TextInput } from '../../components/ui/PageShell';
 import { DateField } from '../../components/ui/DateField';
 import { FormActionFooter } from '../../components/ui/FormActionFooter';
 import { SearchSelect } from '../../components/ui/SearchSelect';
@@ -10,6 +10,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useMinimizableForm } from '../../hooks/useMinimizableForm';
 import type { MinimizedFormKind } from '../../stores/minimizedFormsStore';
+
+type QueuedVoucherItem = {
+  id: string;
+  debitAccountId: string;
+  creditAccountId: string;
+  debitAccountName: string;
+  creditAccountName: string;
+  amount: string;
+  voucherDate: string;
+  reference: string;
+  description: string;
+  predictedNumber: number | null;
+};
 
 type VoucherDraft = {
   debitCategoryId: string;
@@ -21,6 +34,7 @@ type VoucherDraft = {
   reference: string;
   description: string;
   predictedNumber?: number | null;
+  queuedItems?: QueuedVoucherItem[];
 };
 
 type VoucherFormKind = 'payment' | 'journal' | 'receipt';
@@ -182,9 +196,13 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
   const [numberMismatch, setNumberMismatch] = useState(false);
   const [reference, setReference] = useState(restoredState?.reference ?? '');
   const [description, setDescription] = useState(restoredState?.description ?? '');
+  const [queuedItems, setQueuedItems] = useState<QueuedVoucherItem[]>(() => restoredState?.queuedItems ?? []);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  const batchMode = (kind === 'payment' || kind === 'receipt') && !isEditMode;
+  const totalGridAmount = queuedItems.reduce((sum, item) => sum + Number(item.amount), 0);
 
   const reload = useCallback(async () => {
     try {
@@ -301,8 +319,72 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
     );
   }
 
+  function handleAddToGrid() {
+    setError('');
+    setMessage('');
+    if (!canSubmit()) {
+      setError('Select both accounts, enter amount and reference');
+      return;
+    }
+    const debitAccount = accounts.find((a) => String(a.id) === debitAccountId);
+    const creditAccount = accounts.find((a) => String(a.id) === creditAccountId);
+    const item: QueuedVoucherItem = {
+      id: crypto.randomUUID(),
+      debitAccountId,
+      creditAccountId,
+      debitAccountName: debitAccount?.name ?? '—',
+      creditAccountName: creditAccount?.name ?? '—',
+      amount,
+      voucherDate,
+      reference: reference.trim(),
+      description,
+      predictedNumber,
+    };
+    setQueuedItems((prev) => [...prev, item]);
+    setPredictedNumber((n) => (n != null ? n + 1 : n));
+    setAmount('');
+    setReference('');
+    setDescription('');
+    amountRef.current?.focus();
+  }
+
+  function handleRemoveFromGrid(id: string) {
+    setQueuedItems((items) => items.filter((i) => i.id !== id));
+  }
+
+  async function handleSaveAll() {
+    if (queuedItems.length === 0 || saving) return;
+    setError('');
+    setMessage('');
+    setSaving(true);
+    try {
+      const payload = queuedItems.map((item) => ({
+        type: VOUCHER_TYPES[kind],
+        debitAccountId: Number(item.debitAccountId),
+        creditAccountId: Number(item.creditAccountId),
+        amount: Number(item.amount),
+        date: item.voucherDate,
+        description: item.description || undefined,
+        reference: item.reference.trim(),
+      }));
+      const vouchers = await api.createVouchersBatch(payload);
+      setQueuedItems([]);
+      setMessage(`${vouchers.length} voucher${vouchers.length === 1 ? '' : 's'} posted.`);
+      await Promise.all([reload(), refreshPredictedNumber()]);
+      amountRef.current?.focus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Batch save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (batchMode) {
+      handleAddToGrid();
+      return;
+    }
     setError('');
     setMessage('');
     if (!debitAccountId || !creditAccountId) {
@@ -379,9 +461,10 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
       titleRef={titleRef}
       title={titleColorClass ? <span className={titleColorClass}>{titleText}</span> : titleText}
     >
-      <div className="mx-auto w-full max-w-[980px] overflow-visible px-2">
+      <div className={`mx-auto w-full overflow-visible px-2 ${batchMode ? 'max-w-[1280px]' : 'max-w-[980px]'}`}>
         <div ref={trapRef} className="overflow-visible">
-          <form ref={formRef} className="space-y-8 overflow-visible" onSubmit={onSubmit}>
+          <div className={batchMode ? 'voucher-batch-split' : undefined}>
+            <form ref={formRef} className="space-y-8 overflow-visible" onSubmit={onSubmit}>
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <FieldLabel>Date</FieldLabel>
@@ -472,7 +555,7 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
               tabIndex={8}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional notes — press Enter to save when ready"
+              placeholder={batchMode ? 'Optional notes — press Enter to add to grid' : 'Optional notes — press Enter to save when ready'}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && canSubmit() && !saving) {
                   e.preventDefault();
@@ -485,7 +568,7 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
           <FormActionFooter
             error={error || undefined}
             message={message || undefined}
-            primaryLabel={isEditMode ? 'Update' : 'Save & Post'}
+            primaryLabel={isEditMode ? 'Update' : batchMode ? 'Add to Grid' : 'Save & Post'}
             saving={saving}
             primaryRef={saveRef}
             primaryTabIndex={9}
@@ -503,12 +586,85 @@ export function VoucherFormPage({ kind }: { kind: VoucherFormKind }) {
                   reference,
                   description,
                   predictedNumber,
+                  queuedItems: batchMode ? queuedItems : undefined,
                 },
                 `${VOUCHER_PAGE_TITLES[kind]} — ${predictedNumber != null ? formatVoucherNumber(predictedNumber) : 'draft'}`,
               )
             }
           />
         </form>
+
+            {batchMode ? (
+              <aside className="voucher-batch-preview">
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-textSecondary">
+                      Batch preview
+                    </h3>
+                    <p className="mt-1 text-xs text-textMuted">
+                      {queuedItems.length} queued · Total{' '}
+                      <span className="font-medium tabular-nums text-textPrimary">
+                        {formatLedgerAmount(totalGridAmount)}
+                      </span>
+                    </p>
+                  </div>
+                  <FinancialButton
+                    type="button"
+                    disabled={queuedItems.length === 0 || saving}
+                    onClick={() => void handleSaveAll()}
+                  >
+                    {saving ? 'Saving…' : 'Save All'}
+                  </FinancialButton>
+                </div>
+                <div className="voucher-batch-preview-scroll">
+                  {queuedItems.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-textMuted">
+                      Add lines from the form — nothing is posted until Save All.
+                    </p>
+                  ) : (
+                    <table className="w-full min-w-[420px] text-left text-sm">
+                      <thead className="sticky top-0 bg-surface2">
+                        <tr className="border-b border-border text-xs uppercase tracking-wide text-textMuted">
+                          <th className="px-2 py-2">#</th>
+                          <th className="px-2 py-2">From</th>
+                          <th className="px-2 py-2">To</th>
+                          <th className="px-2 py-2 text-right">Amount</th>
+                          <th className="px-2 py-2">Ref</th>
+                          <th className="px-2 py-2" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {queuedItems.map((item) => (
+                          <tr key={item.id} className="border-b border-border/50">
+                            <td className="px-2 py-2 tabular-nums text-textSecondary">
+                              {item.predictedNumber != null
+                                ? formatVoucherNumber(item.predictedNumber)
+                                : '—'}
+                            </td>
+                            <td className="px-2 py-2">{item.creditAccountName}</td>
+                            <td className="px-2 py-2">{item.debitAccountName}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">
+                              {formatLedgerAmount(Number(item.amount))}
+                            </td>
+                            <td className="px-2 py-2">{item.reference}</td>
+                            <td className="px-2 py-2 text-right">
+                              <button
+                                type="button"
+                                className="text-xs text-danger hover:underline"
+                                onClick={() => handleRemoveFromGrid(item.id)}
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </aside>
+            ) : null}
+          </div>
         </div>
       </div>
     </PageShell>

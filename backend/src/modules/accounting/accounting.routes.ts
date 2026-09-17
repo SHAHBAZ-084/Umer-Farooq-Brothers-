@@ -169,25 +169,37 @@ accountingRouter.get(
   }),
 );
 
+const voucherCreateItemSchema = z.object({
+  type: z.nativeEnum(VoucherType),
+  debitAccountId: z.number().int(),
+  creditAccountId: z.number().int(),
+  amount: z.number().positive(),
+  date: z.union([z.string().min(1), z.coerce.date()]),
+  description: z.string().optional(),
+  reference: z.string().trim().min(1, 'Reference is required'),
+});
+
 accountingRouter.post(
   '/vouchers',
-  validateBody(
-    z.object({
-      type: z.nativeEnum(VoucherType),
-      debitAccountId: z.number().int(),
-      creditAccountId: z.number().int(),
-      amount: z.number().positive(),
-      date: z.union([z.string().min(1), z.coerce.date()]),
-      description: z.string().optional(),
-      reference: z.string().trim().min(1, 'Reference is required'),
-    }),
-  ),
+  validateBody(voucherCreateItemSchema),
   asyncHandler(async (req, res) => {
     const voucher = await accountingService.createVoucher({
       ...req.body,
       createdById: req.session.userId!,
     });
     res.status(201).json(voucher);
+  }),
+);
+
+accountingRouter.post(
+  '/vouchers/batch',
+  validateBody(z.object({ items: z.array(voucherCreateItemSchema).min(1) })),
+  asyncHandler(async (req, res) => {
+    const vouchers = await accountingService.createVouchersBatch(
+      req.body.items,
+      req.session.userId!,
+    );
+    res.status(201).json(vouchers);
   }),
 );
 
