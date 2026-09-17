@@ -1,7 +1,9 @@
-import { FormEvent, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { FormEvent, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Modal } from '../../components/ui/Modal';
 import {
   FieldLabel,
+  FinancialButton,
   PageShell,
   Panel,
   PrimaryButton,
@@ -13,6 +15,7 @@ import { api } from '../../lib/api';
 
 export function UserInfoPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'ADMIN';
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -21,6 +24,51 @@ export function UserInfoPage() {
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+
+  const [passcodeModalOpen, setPasscodeModalOpen] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [passcodeError, setPasscodeError] = useState('');
+  const [verifyingPasscode, setVerifyingPasscode] = useState(false);
+
+  /** Admin-only secret chord: Ctrl+Shift+Alt+A+S while this page is mounted. */
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const held = new Set<string>();
+
+    function clearHeld() {
+      held.clear();
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (!(event.ctrlKey && event.shiftKey && event.altKey)) {
+        clearHeld();
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key !== 'a' && key !== 's') return;
+      held.add(key);
+      if (held.has('a') && held.has('s')) {
+        event.preventDefault();
+        clearHeld();
+        setPasscode('');
+        setPasscodeError('');
+        setPasscodeModalOpen(true);
+      }
+    }
+
+    function onKeyUp(event: KeyboardEvent) {
+      held.delete(event.key.toLowerCase());
+      if (!event.ctrlKey || !event.shiftKey || !event.altKey) clearHeld();
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [isAdmin]);
 
   async function onChangePassword(event: FormEvent) {
     event.preventDefault();
@@ -47,6 +95,33 @@ export function UserInfoPage() {
       setPasswordError(err instanceof Error ? err.message : 'Failed to change password');
     } finally {
       setChangingPassword(false);
+    }
+  }
+
+  function closePasscodeModal() {
+    if (verifyingPasscode) return;
+    setPasscodeModalOpen(false);
+    setPasscode('');
+    setPasscodeError('');
+  }
+
+  async function onVerifyPasscode(event: FormEvent) {
+    event.preventDefault();
+    if (!passcode.trim()) {
+      setPasscodeError('Enter the passcode.');
+      return;
+    }
+    setVerifyingPasscode(true);
+    setPasscodeError('');
+    try {
+      await api.verifyFinancialYearClosePasscode(passcode.trim());
+      setPasscodeModalOpen(false);
+      setPasscode('');
+      navigate('/settings/financial-year');
+    } catch (err) {
+      setPasscodeError(err instanceof Error ? err.message : 'Invalid passcode');
+    } finally {
+      setVerifyingPasscode(false);
     }
   }
 
@@ -122,6 +197,43 @@ export function UserInfoPage() {
           </form>
         </Panel>
       </div>
+
+      <Modal
+        open={passcodeModalOpen}
+        title="Admin verification"
+        onClose={closePasscodeModal}
+        footer={
+          <>
+            <SecondaryButton type="button" onClick={closePasscodeModal} disabled={verifyingPasscode}>
+              Cancel
+            </SecondaryButton>
+            <FinancialButton
+              type="submit"
+              form="fy-close-passcode-form"
+              disabled={verifyingPasscode}
+            >
+              {verifyingPasscode ? 'Checking…' : 'Continue'}
+            </FinancialButton>
+          </>
+        }
+      >
+        <form id="fy-close-passcode-form" className="space-y-3" onSubmit={(e) => void onVerifyPasscode(e)}>
+          <p className="text-sm text-textSecondary">
+            Enter the passcode to open Close Financial Year.
+          </p>
+          <div>
+            <FieldLabel>Passcode</FieldLabel>
+            <TextInput
+              type="password"
+              autoComplete="off"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              autoFocus
+            />
+          </div>
+          {passcodeError ? <p className="text-sm text-danger">{passcodeError}</p> : null}
+        </form>
+      </Modal>
     </PageShell>
   );
 }

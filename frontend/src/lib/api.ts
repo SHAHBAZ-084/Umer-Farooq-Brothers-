@@ -831,6 +831,14 @@ export const api = {
     });
   },
 
+  /** Admin-only: server-side check for Close Financial Year secret passcode. */
+  verifyFinancialYearClosePasscode(passcode: string) {
+    return request<{ verified: true }>('/api/system/financial-year/verify-passcode', {
+      method: 'POST',
+      body: JSON.stringify({ passcode }),
+    });
+  },
+
   backupDatabase() {
     return request<{ ok: boolean; path: string | null }>('/api/system/backup-database', {
       method: 'POST',
@@ -1208,6 +1216,7 @@ export const api = {
   getStockReport(params: {
     productId: number;
     bagType: 'BORI' | 'THELA';
+    financialYearId?: number;
     limit?: number;
     offset?: number;
   }) {
@@ -1215,6 +1224,7 @@ export const api = {
       productId: String(params.productId),
       bagType: params.bagType,
     });
+    if (params.financialYearId != null) query.set('financialYearId', String(params.financialYearId));
     if (params.limit != null) query.set('limit', String(params.limit));
     if (params.offset != null) query.set('offset', String(params.offset));
     return request<{
@@ -1230,6 +1240,8 @@ export const api = {
       trackingStartedAt: string;
       historicalBackfill: false;
       carriedRemainderKg: number;
+      openingBalance?: number;
+      financialYearId?: number | null;
       rows: Array<{
         id: number;
         date: string;

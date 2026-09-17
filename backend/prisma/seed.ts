@@ -4,6 +4,7 @@ import {
   bootstrapChartOfAccounts,
   fiscalYearLabelForDate,
 } from '../src/modules/accounting/accounting.service';
+import { ensureFinancialYearClosePasscode } from '../src/lib/app-secrets';
 
 const prisma = new PrismaClient();
 
@@ -47,6 +48,13 @@ async function main() {
 
   await bootstrapChartOfAccounts();
   console.log('Chart of accounts bootstrapped.');
+
+  const seeded = await ensureFinancialYearClosePasscode(prisma);
+  if (seeded) {
+    console.log('Seeded app secret "FINANCIAL_YEAR_CLOSE_PASSCODE".');
+  } else {
+    console.log('App secret "FINANCIAL_YEAR_CLOSE_PASSCODE" already exists — skipping.');
+  }
 }
 
 main()

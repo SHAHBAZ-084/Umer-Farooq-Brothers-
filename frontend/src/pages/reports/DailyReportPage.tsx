@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DateField } from '../../components/ui/DateField';
 import { Modal } from '../../components/ui/Modal';
@@ -10,8 +10,10 @@ import {
   Panel,
   SecondaryButton,
 } from '../../components/ui/PageShell';
+import { useReportFinancialYear } from '../../contexts/ReportFinancialYearContext';
 import { api } from '../../lib/api';
 import { formatLedgerAmount } from '../../lib/format';
+import { ClosedYearReportBanner } from './FinancialYearReportsPage';
 import { REPORT_PAGE_SIZE, ReportPager } from './ReportPages';
 
 type DailyFilterKey =
@@ -76,6 +78,7 @@ function viewHref(row: DailyRow): string | null {
 }
 
 export function DailyReportPage() {
+  const { selectedYear, locked, readOnly } = useReportFinancialYear();
   const [date, setDate] = useState(todayInputValue);
   const [rows, setRows] = useState<DailyRow[]>([]);
   const [kindCounts, setKindCounts] = useState<Partial<Record<string, number>>>({});
@@ -88,10 +91,24 @@ export function DailyReportPage() {
   const [error, setError] = useState('');
   const [kindFilter, setKindFilter] = useState<DailyFilterKey>('all');
 
+  useEffect(() => {
+    if (!locked || !selectedYear?.startDate) return;
+    const end = (selectedYear.endDate ?? selectedYear.startDate).slice(0, 10);
+    setDate(end);
+  }, [locked, selectedYear?.id, selectedYear?.startDate, selectedYear?.endDate]);
+
   async function loadReport(day: string, nextFilter: DailyFilterKey = kindFilter, nextOffset = 0) {
     if (!day) {
       setError('Select a date');
       return;
+    }
+    if (locked && selectedYear?.startDate) {
+      const start = selectedYear.startDate.slice(0, 10);
+      const end = (selectedYear.endDate ?? selectedYear.startDate).slice(0, 10);
+      if (day < start || day > end) {
+        setError(`Date must be within ${start} and ${end}`);
+        return;
+      }
     }
     setLoading(true);
     setError('');
@@ -136,6 +153,7 @@ export function DailyReportPage() {
       title="Daily Report"
       subtitle="Posted vouchers and invoices for a single day"
     >
+      <ClosedYearReportBanner />
       <Modal
         open={filtersOpen}
         title="Daily Report"
@@ -236,7 +254,7 @@ export function DailyReportPage() {
                       <td>{accountCellLabel(row.creditAccount)}</td>
                       <td className="text-right tabular-nums">{formatLedgerAmount(row.amount)}</td>
                       <td className="text-right">
-                        {href ? (
+                        {href && !readOnly ? (
                           <Link to={href} className="text-sm font-medium text-financial hover:underline">
                             View
                           </Link>

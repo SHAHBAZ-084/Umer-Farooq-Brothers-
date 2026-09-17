@@ -625,6 +625,14 @@ model SystemPreference {
   updatedAt         DateTime @updatedAt
 }
 
+/** Key/value store for hashed app secrets (never store plaintext). */
+model AppSecret {
+  key       String   @id
+  valueHash String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model InvoiceItem {
   id        Int     @id @default(autoincrement())
   invoiceId Int

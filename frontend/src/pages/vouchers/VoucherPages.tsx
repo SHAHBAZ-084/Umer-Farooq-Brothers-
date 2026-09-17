@@ -700,6 +700,7 @@ export function VoucherDetailCard({
   onUpdateDetails,
   cancelling,
   updating,
+  readOnly = false,
 }: {
   voucher: Voucher;
   onCancel: () => void;
@@ -711,6 +712,8 @@ export function VoucherDetailCard({
   }) => void | Promise<void>;
   cancelling: boolean;
   updating: boolean;
+  /** When true, hide Update/Cancel — used for closed financial year reports. */
+  readOnly?: boolean;
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
@@ -723,7 +726,7 @@ export function VoucherDetailCard({
     || voucher.type === 'PURCHASE_GENERAL'
     || voucher.type === 'SALE_GENERAL'
     || voucher.type === 'GENERAL_TRADE';
-  const canUpdateDetails = !isMultiLeg && !isCancelled
+  const canUpdateDetails = !readOnly && !isMultiLeg && !isCancelled
     && (voucher.type === 'PAYMENT' || voucher.type === 'RECEIPT' || voucher.type === 'JOURNAL');
 
   const [editing, setEditing] = useState(false);
@@ -841,7 +844,7 @@ export function VoucherDetailCard({
           </div>
           <p className="mt-1 text-sm text-textSecondary">{formatDate(voucher.date)}</p>
         </div>
-        {!isCancelled && (
+        {!isCancelled && !readOnly && (
           <div className="flex gap-2">
             {canUpdateDetails && !editing && (
               <SecondaryButton onClick={() => setEditing(true)}>Update</SecondaryButton>

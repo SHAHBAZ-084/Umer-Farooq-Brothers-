@@ -26,6 +26,11 @@ import {
   TrialBalancePage,
   VouchersReportPage,
 } from './pages/reports/ReportPages';
+import {
+  ClosedYearReportsLayout,
+  FinancialYearHubPage,
+  FinancialYearListPage,
+} from './pages/reports/FinancialYearReportsPage';
 import { FinancialYearPage } from './pages/system/FinancialYearPage';
 import { SystemPreferencesPage } from './pages/system/SystemPreferencesPage';
 import { UserInfoPage } from './pages/user/UserInfoPage';
@@ -109,6 +114,17 @@ export default function App() {
                     <Route path="trial-balance" element={<TrialBalancePage />} />
                     <Route path="sale-purchase" element={<SalePurchaseReportsPage />} />
                     <Route path="stock" element={<StockReportPage />} />
+                    <Route path="financial-year" element={<FinancialYearListPage />} />
+                    <Route path="financial-year/:financialYearId" element={<ClosedYearReportsLayout />}>
+                      <Route index element={<FinancialYearHubPage />} />
+                      <Route path="accounts" element={<AccountReportsPage />} />
+                      <Route path="account-balance" element={<AccountBalancePage />} />
+                      <Route path="vouchers" element={<VouchersReportPage />} />
+                      <Route path="daily" element={<DailyReportPage />} />
+                      <Route path="trial-balance" element={<TrialBalancePage />} />
+                      <Route path="sale-purchase" element={<SalePurchaseReportsPage />} />
+                      <Route path="stock" element={<StockReportPage />} />
+                    </Route>
                   </Route>
 
                   <Route path="/system/preferences" element={<SystemPreferencesPage />} />

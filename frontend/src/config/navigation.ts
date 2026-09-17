@@ -111,6 +111,7 @@ export const SIDEBAR_NAV: SidebarSection[] = [
       { kind: 'link', label: 'Detail Trial Balance', to: '/reports/trial-balance' },
       { kind: 'link', label: 'Sale/Purchase Reports', to: '/reports/sale-purchase' },
       { kind: 'link', label: 'Stock Report', to: '/reports/stock' },
+      { kind: 'link', label: 'Financial Year', to: '/reports/financial-year' },
       { kind: 'link', label: 'Empty Bardana', to: '/inventory/bardana' },
     ],
   },
@@ -121,7 +122,6 @@ export const SIDEBAR_NAV: SidebarSection[] = [
     items: [
       { kind: 'link', label: 'User Management', to: '/system/users' },
       { kind: 'link', label: 'System Preference', to: '/system/preferences' },
-      { kind: 'link', label: 'Financial Year', to: '/settings/financial-year' },
     ],
   },
 ];
@@ -229,6 +229,8 @@ const ROUTE_TITLES: Record<string, string> = {
   '/user': 'User Information',
   '/backup': 'Database Backup',
   '/approvals': 'Approval',
+  /** Hidden from sidebar — reachable only via admin secret shortcut. */
+  '/settings/financial-year': 'Financial Year',
 };
 
 function collectRouteTitles(items: NavItem[], titles: Record<string, string>) {

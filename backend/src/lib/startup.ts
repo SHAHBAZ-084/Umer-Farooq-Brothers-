@@ -140,6 +140,15 @@ async function ensureBootstrapData(db: PrismaClient): Promise<void> {
   } catch (err) {
     logger.warn('Chart of accounts bootstrap skipped/failed', { err: String(err) });
   }
+
+  // Idempotent: hashed close-year passcode for admin secret shortcut
+  try {
+    const { ensureFinancialYearClosePasscode } = await import('./app-secrets');
+    const created = await ensureFinancialYearClosePasscode(db);
+    if (created) logger.info('Seeded FINANCIAL_YEAR_CLOSE_PASSCODE app secret');
+  } catch (err) {
+    logger.warn('App secret bootstrap skipped/failed', { err: String(err) });
+  }
 }
 
 export async function initializeDatabase(db: PrismaClient): Promise<StartupStatus> {

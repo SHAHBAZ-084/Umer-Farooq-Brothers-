@@ -23,6 +23,23 @@ function toStockBagType(kind: StockBagKind): StockBagType {
   return kind === 'THELA' ? StockBagType.THELA : StockBagType.BORI;
 }
 
+async function resolveFinancialYearWindow(financialYearId?: number | null) {
+  if (financialYearId == null || !Number.isFinite(financialYearId) || financialYearId < 1) {
+    return null;
+  }
+  const year = await prisma.financialYear.findUnique({ where: { id: financialYearId } });
+  if (!year) throw new AppError(404, 'Financial year not found');
+  const yearStart = new Date(year.startDate);
+  yearStart.setHours(0, 0, 0, 0);
+  const yearEnd = year.endDate ? new Date(year.endDate) : new Date();
+  yearEnd.setHours(23, 59, 59, 999);
+  return { yearStart, yearEnd, label: year.label };
+}
+
+function movementSignedQty(direction: StockDirection, qty: number) {
+  return direction === StockDirection.IN ? qty : -qty;
+}
+
 async function getCarriedRemainderKg(
   tx: Tx,
   productId: number,
@@ -203,6 +220,7 @@ export async function postSalePaunchStockOut(
 export async function getStockReport(params: {
   productId: number;
   bagType: 'BORI' | 'THELA';
+  financialYearId?: number | null;
   pagination?: { limit: number; offset: number } | null;
 }) {
   const product = await prisma.product.findFirst({
@@ -214,11 +232,13 @@ export async function getStockReport(params: {
   if (product.category.stockMode === 'QUANTITY') {
     return getQuantityStockReport({
       productId: params.productId,
+      financialYearId: params.financialYearId,
       pagination: params.pagination,
     });
   }
 
   const bagType = toStockBagType(params.bagType);
+  const yearWindow = await resolveFinancialYearWindow(params.financialYearId ?? null);
   const movements = await prisma.stockMovement.findMany({
     where: { productId: params.productId, bagType },
     orderBy: [{ date: 'asc' }, { id: 'asc' }],
@@ -228,10 +248,21 @@ export async function getStockReport(params: {
     where: { productId_bagType: { productId: params.productId, bagType } },
   });
 
-  let running = 0;
+  let opening = 0;
+  const scoped = yearWindow
+    ? movements.filter((m) => {
+        if (m.date < yearWindow.yearStart) {
+          opening += movementSignedQty(m.direction, Number(m.bags));
+          return false;
+        }
+        return m.date <= yearWindow.yearEnd;
+      })
+    : movements;
+
+  let running = opening;
   let totalIn = 0;
   let totalOut = 0;
-  const allRows = movements.map((m) => {
+  const allRows = scoped.map((m) => {
     const bags = Number(m.bags);
     if (m.direction === StockDirection.IN) {
       running += bags;
@@ -277,6 +308,8 @@ export async function getStockReport(params: {
     /** Historical invoices before stock feature ship are not backfilled. */
     historicalBackfill: false as const,
     carriedRemainderKg: remainder ? Number(remainder.remainderKg) : 0,
+    openingBalance: opening,
+    financialYearId: params.financialYearId ?? null,
     rows,
     total,
     limit: params.pagination ? limit : total,
@@ -292,6 +325,7 @@ export async function getStockReport(params: {
 /** Quantity stock report for General Goods products — negatives shown plainly (no clamp). */
 export async function getQuantityStockReport(params: {
   productId: number;
+  financialYearId?: number | null;
   pagination?: { limit: number; offset: number } | null;
 }) {
   const product = await prisma.product.findFirst({
@@ -303,15 +337,27 @@ export async function getQuantityStockReport(params: {
     throw new AppError(400, 'Product does not use quantity stock');
   }
 
+  const yearWindow = await resolveFinancialYearWindow(params.financialYearId ?? null);
   const movements = await prisma.productQuantityMovement.findMany({
     where: { productId: params.productId },
     orderBy: [{ date: 'asc' }, { id: 'asc' }],
   });
 
-  let running = 0;
+  let opening = 0;
+  const scoped = yearWindow
+    ? movements.filter((m) => {
+        if (m.date < yearWindow.yearStart) {
+          opening += movementSignedQty(m.direction, Number(m.quantity));
+          return false;
+        }
+        return m.date <= yearWindow.yearEnd;
+      })
+    : movements;
+
+  let running = opening;
   let totalIn = 0;
   let totalOut = 0;
-  const allRows = movements.map((m) => {
+  const allRows = scoped.map((m) => {
     const quantity = Number(m.quantity);
     if (m.direction === StockDirection.IN) {
       running += quantity;
@@ -356,6 +402,8 @@ export async function getQuantityStockReport(params: {
     trackingStartedAt: STOCK_TRACKING_STARTED_AT.toISOString(),
     historicalBackfill: false as const,
     carriedRemainderKg: 0,
+    openingBalance: opening,
+    financialYearId: params.financialYearId ?? null,
     rows,
     total,
     limit: params.pagination ? limit : total,

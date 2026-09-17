@@ -4,7 +4,6 @@ import { DEFAULT_BUSINESS_INFO, loadBusinessInfo } from '../../lib/businessInfo'
 import { formatDate, formatLedgerAmount, formatLedgerBalance, formatVoucherNumber, formatVoucherTypeLabel, ledgerBalanceColorClass, ledgerCreditColorClass, ledgerDebitColorClass, voucherTypeColorClass } from '../../lib/format';
 import { downloadExcel, downloadPdf, formatBusinessContactLine, printReportPdf, type ReportBusinessInfo } from '../../lib/reportExport';
 import { useReportFinancialYear } from '../../contexts/ReportFinancialYearContext';
-import { ReportFinancialYearSelect } from '../../components/reports/ReportFinancialYearSelect';
 import { SearchSelect } from '../../components/ui/SearchSelect';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { DateField } from '../../components/ui/DateField';
@@ -17,6 +16,7 @@ import {
   CategoryGroupTotalRow,
   sumGroupField,
 } from './categoryReportGroups';
+import { ClosedYearReportBanner } from './FinancialYearReportsPage';
 
 type LedgerResult = Awaited<ReturnType<typeof api.getLedger>>;
 type AccountBalanceResult = Awaited<ReturnType<typeof api.getAccountBalanceReport>>;
@@ -138,6 +138,7 @@ export function AccountReportsPage() {
     financialYearId,
     financialYearIdNum,
     selectedYear,
+    locked,
   } = useReportFinancialYear();
   const [categories, setCategories] = useState<AccountCategory[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -172,11 +173,18 @@ export function AccountReportsPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedYear?.startDate || dateDefaultsAppliedRef.current) return;
+    if (!selectedYear?.startDate) return;
+    if (locked) {
+      setFromDate(selectedYear.startDate.slice(0, 10));
+      setToDate((selectedYear.endDate ?? selectedYear.startDate).slice(0, 10));
+      dateDefaultsAppliedRef.current = true;
+      return;
+    }
+    if (dateDefaultsAppliedRef.current) return;
     setFromDate(selectedYear.startDate.slice(0, 10));
     setToDate(todayInputValue());
     dateDefaultsAppliedRef.current = true;
-  }, [selectedYear?.id, selectedYear?.startDate]);
+  }, [selectedYear?.id, selectedYear?.startDate, selectedYear?.endDate, locked]);
 
   useEffect(() => {
     setLoaded(false);
@@ -294,6 +302,7 @@ export function AccountReportsPage() {
           : 'View ledger entries for any account'
       }
     >
+      <ClosedYearReportBanner />
       <Modal
         open={filtersOpen}
         title="Account Ledger"
@@ -440,12 +449,9 @@ export function AccountReportsPage() {
 
 export function TrialBalancePage() {
   const {
-    years,
     financialYearId,
-    setFinancialYearId,
     financialYearIdNum,
     selectedYear,
-    loading: yearsLoading,
   } = useReportFinancialYear();
   const [data, setData] = useState<Awaited<ReturnType<typeof api.getTrialBalance>> | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -552,6 +558,7 @@ export function TrialBalancePage() {
           : 'Debit and credit totals by account'
       }
     >
+      <ClosedYearReportBanner />
       <Modal
         open={filtersOpen}
         title="Detail Trial Balance"
@@ -565,12 +572,14 @@ export function TrialBalancePage() {
         }
       >
         <div className="report-filter-stack">
-          <ReportFinancialYearSelect
-            value={financialYearId}
-            years={years}
-            onChange={setFinancialYearId}
-            disabled={yearsLoading}
-          />
+          {selectedYear ? (
+            <p className="text-sm text-textSecondary">
+              Financial year: <span className="font-medium text-textPrimary">{selectedYear.label}</span>
+              {selectedYear.status === 'ACTIVE' ? ' (Active)' : ''}
+            </p>
+          ) : (
+            <p className="text-sm text-textMuted">Loading financial year…</p>
+          )}
         </div>
         {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
       </Modal>
@@ -689,7 +698,7 @@ export function SalePurchaseReportsPage() {
   type TypeFilter = 'ALL' | 'COMMISSION' | 'PAUNCH' | 'MAAL';
   type ReportResult = Awaited<ReturnType<typeof api.getSalePurchaseReport>>;
 
-  const { selectedYear } = useReportFinancialYear();
+  const { selectedYear, locked } = useReportFinancialYear();
   const [mode, setMode] = useState<Mode>('SALE');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
   const [fromDate, setFromDate] = useState('');
@@ -708,11 +717,18 @@ export function SalePurchaseReportsPage() {
   const dateDefaultsAppliedRef = useRef(false);
 
   useEffect(() => {
-    if (!selectedYear?.startDate || dateDefaultsAppliedRef.current) return;
+    if (!selectedYear?.startDate) return;
+    if (locked) {
+      setFromDate(selectedYear.startDate.slice(0, 10));
+      setToDate((selectedYear.endDate ?? selectedYear.startDate).slice(0, 10));
+      dateDefaultsAppliedRef.current = true;
+      return;
+    }
+    if (dateDefaultsAppliedRef.current) return;
     setFromDate(selectedYear.startDate.slice(0, 10));
     setToDate(todayInputValue());
     dateDefaultsAppliedRef.current = true;
-  }, [selectedYear?.id, selectedYear?.startDate]);
+  }, [selectedYear?.id, selectedYear?.startDate, selectedYear?.endDate, locked]);
 
   useEffect(() => {
     api.listAccounts()
@@ -893,6 +909,7 @@ export function SalePurchaseReportsPage() {
 
   return (
     <PageShell title="Sale/Purchase Reports" subtitle="Combined invoice reporting (Kachi excluded)">
+      <ClosedYearReportBanner />
       <Modal
         open={filtersOpen}
         title="Sale/Purchase Reports"
@@ -925,14 +942,33 @@ export function SalePurchaseReportsPage() {
               options={typeOptions}
             />
           </div>
-          <div>
-            <FieldLabel>From</FieldLabel>
-            <DateField value={fromDate} onChange={setFromDate} />
-          </div>
-          <div>
-            <FieldLabel>To</FieldLabel>
-            <DateField value={toDate} onChange={setToDate} />
-          </div>
+          {locked ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <FieldLabel>From</FieldLabel>
+                <div className="rounded-lg border border-border bg-surface2 px-3 py-2 text-sm text-textPrimary">
+                  {fromDate || '—'}
+                </div>
+              </div>
+              <div>
+                <FieldLabel>To</FieldLabel>
+                <div className="rounded-lg border border-border bg-surface2 px-3 py-2 text-sm text-textPrimary">
+                  {toDate || '—'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div>
+                <FieldLabel>From</FieldLabel>
+                <DateField value={fromDate} onChange={setFromDate} />
+              </div>
+              <div>
+                <FieldLabel>To</FieldLabel>
+                <DateField value={toDate} onChange={setToDate} />
+              </div>
+            </>
+          )}
           <div>
             <FieldLabel>Account</FieldLabel>
             <SearchSelect
@@ -1073,6 +1109,7 @@ type StockBagType = 'BORI' | 'THELA';
 type StockReportResult = Awaited<ReturnType<typeof api.getStockReport>>;
 
 export function StockReportPage() {
+  const { financialYearIdNum, selectedYear, locked } = useReportFinancialYear();
   const [products, setProducts] = useState<
     Array<{ id: number; name: string; code: string; stockMode?: string }>
   >([]);
@@ -1117,6 +1154,9 @@ export function StockReportPage() {
       const result = await api.getStockReport({
         productId: id,
         bagType,
+        ...(locked && financialYearIdNum != null
+          ? { financialYearId: financialYearIdNum }
+          : {}),
         limit: REPORT_PAGE_SIZE,
         offset: nextOffset,
       });
@@ -1140,11 +1180,16 @@ export function StockReportPage() {
     <PageShell
       title="Stock Report"
       subtitle={
-        qtyMode
-          ? 'Quantity stock for general goods (Purchase IN / Sale OUT). Negatives shown as-is.'
-          : 'Bag stock from Purchase to Maal (IN) and Sale on Paunch (OUT)'
+        locked && selectedYear
+          ? qtyMode
+            ? `Quantity stock · FY ${selectedYear.label}`
+            : `Bag stock · FY ${selectedYear.label}`
+          : qtyMode
+            ? 'Quantity stock for general goods (Purchase IN / Sale OUT). Negatives shown as-is.'
+            : 'Bag stock from Purchase to Maal (IN) and Sale on Paunch (OUT)'
       }
     >
+      <ClosedYearReportBanner />
       <Modal
         open={filtersOpen}
         title="Stock Report"
@@ -1214,6 +1259,9 @@ export function StockReportPage() {
                     Quantity stock
                     {report.product.unit ? ` (${report.product.unit})` : ''}. Net balance can be
                     negative.
+                    {report.openingBalance != null && report.financialYearId != null
+                      ? ` Opening for year: ${report.openingBalance}.`
+                      : null}
                   </>
                 ) : (
                   <>
@@ -1223,6 +1271,9 @@ export function StockReportPage() {
                       : null}
                     {' '}Carried loose remainder: {report.carriedRemainderKg} kg
                     ({report.bagType === 'BORI' ? 'Bori' : 'Thela'}).
+                    {report.openingBalance != null && report.financialYearId != null
+                      ? ` Opening for year: ${report.openingBalance}.`
+                      : null}
                   </>
                 )}
               </p>
@@ -1534,6 +1585,7 @@ export function AccountBalancePage() {
           : 'Balances as of a selected date'
       }
     >
+      <ClosedYearReportBanner />
       <Modal
         open={filtersOpen}
         title="Account Balance"
@@ -1652,12 +1704,11 @@ export function AccountBalancePage() {
 
 export function VouchersReportPage() {
   const {
-    years,
     financialYearId,
-    setFinancialYearId,
     financialYearIdNum,
     selectedYear,
-    loading: yearsLoading,
+    locked,
+    readOnly,
   } = useReportFinancialYear();
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -1689,11 +1740,18 @@ export function VouchersReportPage() {
   const dateDefaultsAppliedRef = useRef(false);
 
   useEffect(() => {
-    if (!selectedYear?.startDate || dateDefaultsAppliedRef.current) return;
+    if (!selectedYear?.startDate) return;
+    if (locked) {
+      setFromDate(selectedYear.startDate.slice(0, 10));
+      setToDate((selectedYear.endDate ?? selectedYear.startDate).slice(0, 10));
+      dateDefaultsAppliedRef.current = true;
+      return;
+    }
+    if (dateDefaultsAppliedRef.current) return;
     setFromDate(selectedYear.startDate.slice(0, 10));
     setToDate(todayInputValue());
     dateDefaultsAppliedRef.current = true;
-  }, [selectedYear?.id, selectedYear?.startDate]);
+  }, [selectedYear?.id, selectedYear?.startDate, selectedYear?.endDate, locked]);
 
   useEffect(() => {
     setLoaded(false);
@@ -1827,6 +1885,7 @@ export function VouchersReportPage() {
           : 'Filter and review posted vouchers'
       }
     >
+      <ClosedYearReportBanner />
       <Modal
         open={filtersOpen}
         title="Vouchers Report"
@@ -1840,12 +1899,6 @@ export function VouchersReportPage() {
         }
       >
         <div className="report-filter-stack">
-          <ReportFinancialYearSelect
-            value={financialYearId}
-            years={years}
-            onChange={setFinancialYearId}
-            disabled={yearsLoading}
-          />
           <div>
             <FieldLabel>From Date</FieldLabel>
             <DateField value={fromDate} onChange={setFromDate} />
@@ -1998,6 +2051,7 @@ export function VouchersReportPage() {
           onUpdateDetails={handleUpdateDetails}
           cancelling={cancelling}
           updating={updating}
+          readOnly={readOnly}
         />
       ) : null}
     </PageShell>

@@ -18,6 +18,10 @@ type ReportFinancialYearContextValue = {
   financialYearIdNum: number | undefined;
   selectedYear: FinancialYear | null;
   loading: boolean;
+  /** True when viewing a locked closed year from the Financial Year hub. */
+  locked: boolean;
+  /** True when report screens must not offer mutate actions (cancel/edit). */
+  readOnly: boolean;
 };
 
 const ReportFinancialYearContext = createContext<ReportFinancialYearContextValue | null>(null);
@@ -94,6 +98,8 @@ export function ReportFinancialYearProvider({ children }: { children: ReactNode 
       financialYearIdNum,
       selectedYear,
       loading,
+      locked: false,
+      readOnly: false,
     }),
     [years, financialYearId, setFinancialYearId, financialYearIdNum, selectedYear, loading],
   );
@@ -103,7 +109,89 @@ export function ReportFinancialYearProvider({ children }: { children: ReactNode 
   );
 }
 
-/** Shared Financial Year selection for Reports (set on hub, read on report screens). */
+/**
+ * Nested under /reports/financial-year/:id — locks reports to one CLOSED year
+ * and marks the session read-only (no cancel/edit/post from report screens).
+ */
+export function LockedClosedYearProvider({
+  financialYearId: yearIdParam,
+  children,
+}: {
+  financialYearId: string;
+  children: ReactNode;
+}) {
+  const [year, setYear] = useState<FinancialYear | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    api
+      .listFinancialYears()
+      .then((rows) => {
+        if (cancelled) return;
+        const match = rows.find((y) => String(y.id) === yearIdParam);
+        if (!match) {
+          setYear(null);
+          setError('Financial year not found');
+          return;
+        }
+        if (match.status !== 'CLOSED') {
+          setYear(null);
+          setError('Only closed financial years can be viewed here');
+          return;
+        }
+        setYear(match);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setYear(null);
+        setError(err instanceof Error ? err.message : 'Failed to load financial year');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [yearIdParam]);
+
+  const value = useMemo<ReportFinancialYearContextValue>(
+    () => ({
+      years: year ? [year] : [],
+      financialYearId: year ? String(year.id) : '',
+      setFinancialYearId: () => {},
+      financialYearIdNum: year?.id,
+      selectedYear: year,
+      loading,
+      locked: true,
+      readOnly: true,
+    }),
+    [year, loading],
+  );
+
+  if (loading) {
+    return (
+      <div className="app-page p-6 text-sm text-textMuted">Loading financial year…</div>
+    );
+  }
+
+  if (error || !year) {
+    return (
+      <div className="app-page p-6 text-sm text-danger">
+        {error || 'Financial year not available'}
+      </div>
+    );
+  }
+
+  return (
+    <ReportFinancialYearContext.Provider value={value}>{children}</ReportFinancialYearContext.Provider>
+  );
+}
+
+/** Shared Financial Year selection for Reports (active by default; locked in closed-year hub). */
 export function useReportFinancialYear() {
   const ctx = useContext(ReportFinancialYearContext);
   if (!ctx) {

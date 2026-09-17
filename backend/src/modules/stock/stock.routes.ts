@@ -18,6 +18,15 @@ stockRouter.get(
     }
     const bagTypeRaw = String(req.query.bagType ?? 'BORI').toUpperCase();
     const bagType = z.enum(['BORI', 'THELA']).parse(bagTypeRaw);
+    const fyRaw = req.query.financialYearId;
+    const financialYearId =
+      fyRaw != null && String(fyRaw).trim() !== ''
+        ? Number(fyRaw)
+        : undefined;
+    if (financialYearId != null && (!Number.isFinite(financialYearId) || financialYearId < 1)) {
+      res.status(400).json({ error: 'financialYearId must be a positive integer' });
+      return;
+    }
     const hasPagination = req.query.limit != null || req.query.offset != null;
     const pagination = hasPagination
       ? parsePagination(
@@ -28,6 +37,13 @@ stockRouter.get(
           { limit: 100, max: 500 },
         )
       : null;
-    res.json(await stockService.getStockReport({ productId, bagType, pagination }));
+    res.json(
+      await stockService.getStockReport({
+        productId,
+        bagType,
+        financialYearId,
+        pagination,
+      }),
+    );
   }),
 );
