@@ -336,7 +336,6 @@ export function SaleCommissionInvoicePage() {
     setRatePerMaund('');
     setRowBardanaQty('');
     setRowBardanaRate('');
-    setDammiChecked(false);
   }
 
   function removeRow(clientId: string) {

@@ -179,6 +179,35 @@ export async function initializeDatabase(db: PrismaClient): Promise<StartupStatu
 
     await ensureBootstrapData(db);
 
+    // Heal any ledger.balance drift left by older builds / interrupted tests so
+    // production never boots with an unbalanced trial balance cache.
+    if (status.databaseExists && process.env.NODE_ENV !== 'test') {
+      try {
+        const { repairAllLedgerRunningBalances, getTrialBalance } = await import(
+          '../modules/accounting/accounting.service'
+        );
+        const repaired = await repairAllLedgerRunningBalances();
+        if (repaired.repairedCount > 0) {
+          logger.warn('Repaired ledger balance drift on startup', {
+            repairedCount: repaired.repairedCount,
+            accounts: repaired.repaired.map((r) => r.account),
+          });
+        }
+        const tb = await getTrialBalance();
+        if (!tb.isBalanced) {
+          logger.error('Trial balance still unbalanced after startup repair', {
+            totalDebit: tb.totalDebit,
+            totalCredit: tb.totalCredit,
+            mismatch: tb.totalDebit - tb.totalCredit,
+          });
+        }
+      } catch (err) {
+        logger.warn('Startup ledger repair skipped/failed', {
+          err: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
     if (status.databaseExists && process.env.NODE_ENV === 'production') {
       await createDatabaseBackup();
       const integrity = await verifyDatabaseIntegrity(db);

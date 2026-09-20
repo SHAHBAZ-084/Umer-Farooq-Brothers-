@@ -366,7 +366,6 @@ export function PurchaseMaalInvoicePage() {
     setRatePerMaund('');
     setRowBardanaQty('');
     setRowBardanaRate('');
-    setDammiChecked(false);
   }
 
   function removeRow(clientId: string) {

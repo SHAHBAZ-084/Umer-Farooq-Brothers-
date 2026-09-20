@@ -95,8 +95,11 @@ export async function assertVoucherDateInActiveFinancialYear(
   return activeYear.id;
 }
 
-async function assertTrialBalanceInDev(db: DbClient) {
-  if (process.env.NODE_ENV === 'production') return;
+async function sumTrialBalanceFromLedgers(db: DbClient): Promise<{
+  totalDebit: number;
+  totalCredit: number;
+  balanced: boolean;
+}> {
   const ledgers = await db.ledger.findMany({ select: { balance: true } });
   let totalDebit = 0;
   let totalCredit = 0;
@@ -105,12 +108,61 @@ async function assertTrialBalanceInDev(db: DbClient) {
     totalDebit += debit;
     totalCredit += credit;
   }
-  if (!isTrialBalanceBalanced(totalDebit, totalCredit)) {
-    console.error('[accounting] Trial balance mismatch after voucher change', {
-      totalDebit,
-      totalCredit,
-    });
+  return {
+    totalDebit,
+    totalCredit,
+    balanced: isTrialBalanceBalanced(totalDebit, totalCredit),
+  };
+}
+
+/**
+ * Production-safe book integrity gate (never skipped).
+ * If trial balance breaks after a voucher change:
+ * 1) Full-recompute only the affected ledgers (heals predecessor-balance drift)
+ * 2) Re-check; if still unbalanced, throw so the transaction rolls back
+ */
+async function assertBooksBalancedInTx(db: DbClient, affectedLedgerIds: number[] = []) {
+  let financialYearId: number;
+  try {
+    financialYearId = await getActiveFinancialYearId(db);
+  } catch {
+    return;
   }
+
+  let measured = await sumTrialBalanceFromLedgers(db);
+  if (measured.balanced) return;
+
+  const uniqueIds = [...new Set(affectedLedgerIds.filter((id) => id > 0))];
+  if (uniqueIds.length > 0) {
+    for (const ledgerId of uniqueIds) {
+      await recomputeLedgerRunningBalancesInTx(db, ledgerId, financialYearId);
+    }
+    measured = await sumTrialBalanceFromLedgers(db);
+    if (measured.balanced) {
+      logger.warn('Auto-repaired affected ledger balances after voucher change', {
+        ledgerIds: uniqueIds,
+      });
+      return;
+    }
+  }
+
+  const mismatch = roundMoney(measured.totalDebit - measured.totalCredit);
+  logger.error('Trial balance mismatch after voucher change — rolling back', {
+    totalDebit: measured.totalDebit,
+    totalCredit: measured.totalCredit,
+    mismatch,
+    affectedLedgerIds: uniqueIds,
+  });
+  throw new AppError(
+    500,
+    `Trial balance is not balanced after posting (Dr ${measured.totalDebit.toFixed(2)} vs Cr ${measured.totalCredit.toFixed(2)}, mismatch ${mismatch.toFixed(2)}). The entry was not saved.`,
+    'TRIAL_BALANCE_MISMATCH',
+  );
+}
+
+/** @deprecated Use assertBooksBalancedInTx */
+async function assertTrialBalanceInDev(db: DbClient, affectedLedgerIds: number[] = []) {
+  await assertBooksBalancedInTx(db, affectedLedgerIds);
 }
 
 async function getOpeningBalanceSnapshot(
@@ -666,6 +718,30 @@ async function recomputeLedgerRunningBalancesInTx(
   await tx.ledger.update({ where: { id: ledgerId }, data: { balance: running } });
 }
 
+/** Full-year recompute of every ledger (fixes stored balance drift vs entries). */
+export async function repairAllLedgerRunningBalances() {
+  const financialYearId = await getActiveFinancialYearId(prisma);
+  const ledgers = await prisma.ledger.findMany({
+    include: { account: { select: { name: true } } },
+    orderBy: { id: 'asc' },
+  });
+
+  const repaired: Array<{ account: string; before: number; after: number }> = [];
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    for (const ledger of ledgers) {
+      const before = Number(ledger.balance);
+      await recomputeLedgerRunningBalancesInTx(tx, ledger.id, financialYearId);
+      const afterRow = await tx.ledger.findUniqueOrThrow({ where: { id: ledger.id } });
+      const after = Number(afterRow.balance);
+      if (Math.abs(after - before) >= 0.005) {
+        repaired.push({ account: ledger.account.name, before, after });
+      }
+    }
+  }, { timeout: 120_000 });
+
+  return { repairedCount: repaired.length, repaired };
+}
+
 /** Legacy names — no longer auto-created; cleaned up when empty/unused. */
 export const CUSTOMERS_CATEGORY_NAME = 'Customers';
 export const SUPPLIERS_CATEGORY_NAME = 'Suppliers';
@@ -980,6 +1056,7 @@ export async function postOneSidedEntryInTx(
   };
   await recomputeLedgerRunningBalancesInTx(tx, params.ledgerId, params.financialYearId, from);
   await recomputeLedgerRunningBalancesInTx(tx, equityAccount.ledger!.id, params.financialYearId, from);
+  await assertBooksBalancedInTx(tx, [params.ledgerId, equityAccount.ledger!.id]);
 }
 
 /** Post Maal Khata / account opening balance + hidden Opening Balance Equity offset. */
@@ -2311,7 +2388,7 @@ export async function approvePendingStandardVoucherInTx(
     data: { status: VoucherStatus.ACTIVE },
   });
 
-  await postStandardVoucherLedgerEntriesInTx(
+  const touchedLedgerIds = await postStandardVoucherLedgerEntriesInTx(
     tx,
     voucher.id,
     voucher.debitAccountId,
@@ -2321,7 +2398,7 @@ export async function approvePendingStandardVoucherInTx(
     voucher.financialYearId,
   );
 
-  await assertTrialBalanceInDev(tx);
+  await assertBooksBalancedInTx(tx, touchedLedgerIds);
 
   return tx.voucher.findUniqueOrThrow({
     where: { id: voucher.id },
@@ -2376,6 +2453,7 @@ export async function postStandardVoucherLedgerEntriesInTx(
   };
   await recomputeLedgerRunningBalancesInTx(tx, debitLedger.id, financialYearId, from);
   await recomputeLedgerRunningBalancesInTx(tx, creditLedger.id, financialYearId, from);
+  return [debitLedger.id, creditLedger.id];
 }
 
 export type VoucherLeg = {
@@ -2424,9 +2502,11 @@ async function postMultiLegVoucherEntries(
     voucherType: voucher.type,
     entryId: -1,
   };
-  for (const ledgerId of ledgerByAccountId.values()) {
+  const ledgerIds = [...ledgerByAccountId.values()];
+  for (const ledgerId of ledgerIds) {
     await recomputeLedgerRunningBalancesInTx(tx, ledgerId, financialYearId, from);
   }
+  return ledgerIds;
 }
 
 export async function createMultiLegVoucherInTx(
@@ -2491,8 +2571,8 @@ export async function createMultiLegVoucherInTx(
     },
   });
 
-  await postMultiLegVoucherEntries(tx, voucher.id, data.legs, financialYearId);
-  await assertTrialBalanceInDev(tx);
+  const touchedLedgerIds = await postMultiLegVoucherEntries(tx, voucher.id, data.legs, financialYearId);
+  await assertBooksBalancedInTx(tx, touchedLedgerIds);
 
   return voucher;
 }
@@ -2949,7 +3029,7 @@ export async function updateVoucherDetails(
       await recomputeLedgerRunningBalancesInTx(tx, ledgerId, financialYearId, from);
     }
 
-    await assertTrialBalanceInDev(tx);
+    await assertBooksBalancedInTx(tx, [...ledgerIds]);
 
     return tx.voucher.findUniqueOrThrow({
       where: { id: voucher.id },
@@ -3085,7 +3165,7 @@ export async function cancelVoucherInTx(
     await recomputeLedgerRunningBalancesInTx(tx, ledgerId, voucher.financialYearId!, from);
   }
 
-  await assertTrialBalanceInDev(tx);
+  await assertBooksBalancedInTx(tx, ledgerIds);
 
   return updated;
 }

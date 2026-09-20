@@ -420,7 +420,6 @@ export function SalePaunchInvoicePage() {
     setUpperRatePerMaund('');
     setRowBardanaQty('');
     setRowBardanaRate('');
-    setDammiChecked(false);
   }
 
   function removeRow(clientId: string) {

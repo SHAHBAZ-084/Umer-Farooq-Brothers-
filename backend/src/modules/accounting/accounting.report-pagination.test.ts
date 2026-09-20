@@ -175,15 +175,23 @@ describe('report pagination + full-period totals', () => {
         isHidden: true,
       },
     });
-    await prisma.ledger.create({ data: { accountId: hidden.id, balance: 12345 } });
+    const hiddenLedger = await prisma.ledger.create({
+      data: { accountId: hidden.id, balance: 12345 },
+    });
 
-    const tb = await getTrialBalance(financialYearId, null);
-    expect(tb.accounts.some((a) => a.accountId === hidden.id)).toBe(false);
-    expect(
-      tb.groups.some((g) => g.accounts.some((a) => a.accountId === hidden.id)),
-    ).toBe(false);
-    expect(tb.totalDebit).toBe(before.totalDebit + 12345);
-    expect(tb.totalCredit).toBe(before.totalCredit);
+    try {
+      const tb = await getTrialBalance(financialYearId, null);
+      expect(tb.accounts.some((a) => a.accountId === hidden.id)).toBe(false);
+      expect(
+        tb.groups.some((g) => g.accounts.some((a) => a.accountId === hidden.id)),
+      ).toBe(false);
+      expect(tb.totalDebit).toBe(before.totalDebit + 12345);
+      expect(tb.totalCredit).toBe(before.totalCredit);
+    } finally {
+      // Do not leave a one-sided ledger balance in the shared SQLite DB.
+      await prisma.ledger.delete({ where: { id: hiddenLedger.id } });
+      await prisma.account.delete({ where: { id: hidden.id } });
+    }
   });
 
   it('account balance packs whole categories and returns full grandBalance', async () => {
