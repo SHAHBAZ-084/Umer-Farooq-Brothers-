@@ -103,7 +103,7 @@ describe('invoiceApprovalAccounts', () => {
     expect(creditAmount).toBe(200);
   });
 
-  it('maps general trade debit=sale party, credit=purchase party + General Trade Revenue', () => {
+  it('maps general trade debit=sale party, credit=purchase party (no General Trade Revenue in preview)', () => {
     const { debitAccount, creditAccount, debitAmount, creditAmount } = invoiceApprovalAccounts({
       type: 'GENERAL_TRADE',
       partyAccount: { name: 'Supplier A', code: 'P-1' },
@@ -128,12 +128,12 @@ describe('invoiceApprovalAccounts', () => {
     });
     expect(debitAccount?.name).toBe('Customer B');
     expect(debitAccount?.amount).toBe(1500);
-    expect(creditAccount?.name).toContain('Supplier A');
-    expect(creditAccount?.name).toContain('1,000');
-    expect(creditAccount?.name).toContain('General Trade Revenue');
-    expect(creditAccount?.name).toContain('500');
+    expect(creditAccount?.name).toBe('Supplier A');
+    expect(creditAccount?.amount).toBe(1000);
+    expect(creditAccount?.name).not.toContain('General Trade Revenue');
+    expect(debitAccount?.name).not.toContain('General Trade Revenue');
     expect(debitAmount).toBe(1500);
-    expect(creditAmount).toBe(1500);
+    expect(creditAmount).toBe(1000);
   });
 
   it('aggregates Sale Paunch Maal Khata credits with netUpperAmount per account', () => {

@@ -42,8 +42,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string)
 }
 
 /**
- * Unified accounts workspace with explicit Create / Edit / Delete modes.
- * Left list stays visible; selecting a row loads Edit or Delete depending on the active tab.
+ * Single-column accounts workspace: Create / Edit / Delete tabs.
+ * Edit and Delete each own an in-tab category filter + search + results list.
  */
 export function AccountManagePage() {
   const { user } = useAuth();
@@ -124,15 +124,12 @@ export function AccountManagePage() {
     setError('');
   }
 
-  function startCreate() {
-    clearForm();
-    setMode('create');
-    setMessage('');
+  function clearPicker() {
+    setListCategoryId('');
+    setListQuery('');
   }
 
-  function selectAccount(account: Account, options?: { keepMessage?: boolean; nextMode?: ManageMode }) {
-    const nextMode = options?.nextMode ?? (mode === 'create' ? 'edit' : mode);
-    setMode(nextMode === 'create' ? 'edit' : nextMode);
+  function selectAccount(account: Account, options?: { keepMessage?: boolean }) {
     setSelectedId(account.id);
     setCategoryId(account.categoryId);
     setName(account.name);
@@ -147,16 +144,9 @@ export function AccountManagePage() {
   function onModeChange(next: ManageMode) {
     setError('');
     setMessage('');
-    if (next === 'create') {
-      clearForm();
-      setMode('create');
-      return;
-    }
+    clearForm();
+    clearPicker();
     setMode(next);
-    if (selectedId == null) {
-      clearForm();
-      setMode(next);
-    }
   }
 
   async function onSubmit(event: FormEvent) {
@@ -210,11 +200,8 @@ export function AccountManagePage() {
         setAccounts(rows);
         setCategories(await api.listCategories());
         const next = rows.find((a) => a.id === selectedId);
-        if (next) selectAccount(next, { keepMessage: true, nextMode: 'edit' });
-        else {
-          clearForm();
-          setMode('edit');
-        }
+        if (next) selectAccount(next, { keepMessage: true });
+        else clearForm();
         return;
       }
       await reload();
@@ -243,6 +230,7 @@ export function AccountManagePage() {
       );
       setMessage(`Account "${account.name}" removed.`);
       clearForm();
+      clearPicker();
       setMode('delete');
       await reload();
     } catch (err) {
@@ -269,244 +257,252 @@ export function AccountManagePage() {
     </>
   ) : null;
 
+  const accountPicker = (
+    <div className="space-y-3 rounded-lg border border-border bg-surface2/40 p-3">
+      <div>
+        <FieldLabel>Filter by category</FieldLabel>
+        <select
+          className="w-full rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-textPrimary"
+          value={listCategoryId}
+          onChange={(e) => setListCategoryId(e.target.value ? Number(e.target.value) : '')}
+        >
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <FieldLabel>Search</FieldLabel>
+        <TextInput
+          value={listQuery}
+          onChange={(e) => setListQuery(e.target.value)}
+          placeholder="Code, name, or category…"
+        />
+      </div>
+      <div className="max-h-48 overflow-auto rounded-lg border border-border bg-bg-surface">
+        {filteredAccounts.length === 0 ? (
+          <p className="p-3 text-sm text-textMuted">No accounts match these filters.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {filteredAccounts.map((account) => {
+              const active = selectedId === account.id;
+              return (
+                <li key={account.id}>
+                  <button
+                    type="button"
+                    className={`flex w-full flex-col gap-0.5 px-3 py-2.5 text-left transition-colors ${
+                      active ? 'bg-financial/10' : 'hover:bg-surface2'
+                    }`}
+                    onClick={() => selectAccount(account)}
+                    disabled={saving}
+                  >
+                    <span className="text-sm font-medium text-textPrimary">{account.name}</span>
+                    <span className="text-xs text-textMuted">
+                      {account.code}
+                      {account.category?.name ? ` · ${account.category.name}` : ''}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <PageShell
       title="Accounts"
-      subtitle="Browse, create, edit, and remove ledger accounts in one place"
+      subtitle="Create, edit, and remove ledger accounts"
     >
-      <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.95fr)_minmax(0,1.15fr)]">
-        <Panel className="overflow-hidden p-0">
-          <div className="space-y-3 border-b border-border p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-textPrimary">Account list</p>
-              <SecondaryButton type="button" onClick={startCreate} disabled={saving || isCreate}>
-                New account
-              </SecondaryButton>
-            </div>
+      <Panel className="mx-auto w-full max-w-2xl">
+        <div className="mb-4 space-y-3">
+          <SegmentedControl
+            ariaLabel="Account manage mode"
+            value={mode}
+            onChange={onModeChange}
+            options={[
+              { value: 'create', label: 'Create' },
+              { value: 'edit', label: 'Edit' },
+              { value: 'delete', label: 'Delete' },
+            ]}
+          />
+          <p className="text-xs text-textMuted">
+            {isCreate
+              ? 'Fill the form and save to submit for approval.'
+              : isEdit
+                ? 'Search for an account, then update its details below.'
+                : 'Search for an account, then remove it. Admins only.'}
+          </p>
+        </div>
+
+        {isCreate ? (
+          <form className="space-y-4" onSubmit={onSubmit}>
             <div>
-              <FieldLabel>Filter by category</FieldLabel>
+              <FieldLabel>Category</FieldLabel>
               <select
-                className="w-full rounded-lg border border-border bg-surface2 px-3 py-2 text-sm text-textPrimary"
-                value={listCategoryId}
-                onChange={(e) => setListCategoryId(e.target.value ? Number(e.target.value) : '')}
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
+                required
               >
-                <option value="">All categories</option>
+                <option value="">Select category</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <FieldLabel>Search</FieldLabel>
-              <TextInput
-                value={listQuery}
-                onChange={(e) => setListQuery(e.target.value)}
-                placeholder="Code, name, or category…"
-              />
+              <FieldLabel>Account name</FieldLabel>
+              <TextInput value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
-          </div>
-          <div className="max-h-[min(32rem,60vh)] overflow-auto">
-            {filteredAccounts.length === 0 ? (
-              <p className="p-4 text-sm text-textMuted">No accounts match these filters.</p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {filteredAccounts.map((account) => {
-                  const active = selectedId === account.id;
-                  return (
-                    <li key={account.id}>
-                      <button
-                        type="button"
-                        className={`flex w-full flex-col gap-0.5 px-4 py-3 text-left transition-colors ${
-                          active ? 'bg-financial/10' : 'hover:bg-surface2'
-                        }`}
-                        onClick={() => selectAccount(account)}
-                        disabled={saving}
-                      >
-                        <span className="text-sm font-medium text-textPrimary">{account.name}</span>
-                        <span className="text-xs text-textMuted">
-                          {account.code}
-                          {account.category?.name ? ` · ${account.category.name}` : ''}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </Panel>
-
-        <Panel>
-          <div className="mb-4 space-y-3">
-            <SegmentedControl
-              ariaLabel="Account manage mode"
-              value={mode}
-              onChange={onModeChange}
-              options={[
-                { value: 'create', label: 'Create' },
-                { value: 'edit', label: 'Edit' },
-                { value: 'delete', label: 'Delete' },
-              ]}
-            />
-            <p className="text-xs text-textMuted">
-              {isCreate
-                ? 'Fill the form and save to submit for approval.'
-                : isEdit
-                  ? 'Select an account from the list, then update its details.'
-                  : 'Select an account from the list, then remove it. Admins only.'}
-            </p>
-          </div>
-
-          {isDelete ? (
-            <div className="space-y-4">
-              {selectedId == null || !editAccount ? (
-                <p className="text-sm text-textMuted">Select an account from the list to delete.</p>
-              ) : (
-                <>
-                  <div>
-                    <FieldLabel>Category</FieldLabel>
-                    <div className="app-input-static text-sm">
-                      {editAccount.category?.name ?? '—'}
-                    </div>
-                  </div>
-                  <div>
-                    <FieldLabel>Account name</FieldLabel>
-                    <div className="app-input-static text-sm">{editAccount.name}</div>
-                  </div>
-                  <div>
-                    <FieldLabel>Code</FieldLabel>
-                    <div className="app-input-static text-sm">{editAccount.code}</div>
-                  </div>
-                  {editAccount.category?.collectsContactInfo ? (
-                    <>
-                      <div>
-                        <FieldLabel>Phone</FieldLabel>
-                        <div className="app-input-static text-sm">{editAccount.phone || '—'}</div>
-                      </div>
-                      <div>
-                        <FieldLabel>Address</FieldLabel>
-                        <div className="app-input-static text-sm">{editAccount.address || '—'}</div>
-                      </div>
-                      <div>
-                        <FieldLabel>CNIC</FieldLabel>
-                        <div className="app-input-static text-sm">{editAccount.cnic || '—'}</div>
-                      </div>
-                    </>
-                  ) : null}
-                </>
-              )}
-
-              {error ? <p className="text-sm text-danger">{error}</p> : null}
-              {message ? <p className="text-sm text-success">{message}</p> : null}
-
-              {isAdmin ? (
-                <DangerButton
-                  type="button"
-                  disabled={saving || selectedId == null}
-                  onClick={() => void onRemove()}
+            {contactFields}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <FieldLabel>Opening balance</FieldLabel>
+                <TextInput
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={openingBalance}
+                  onChange={(e) => setOpeningBalance(e.target.value)}
+                  placeholder="0.00 (optional)"
+                />
+              </div>
+              <div>
+                <FieldLabel>Opening balance side</FieldLabel>
+                <select
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  value={openingBalanceSide}
+                  onChange={(e) => setOpeningBalanceSide(e.target.value as 'DR' | 'CR')}
+                  disabled={!openingBalance.trim() || Number(openingBalance) <= 0}
                 >
-                  {saving ? 'Removing…' : 'Remove account'}
-                </DangerButton>
-              ) : (
-                <p className="text-sm text-textMuted">Only admins can delete accounts.</p>
-              )}
+                  <option value="DR">Dr</option>
+                  <option value="CR">Cr</option>
+                </select>
+                {selectedCategory ? (
+                  <p className="mt-1 text-xs text-textMuted">
+                    Default for {selectedCategory.name}:{' '}
+                    {defaultOpeningSideForCategory(selectedCategory.id, accounts)} side
+                  </p>
+                ) : null}
+              </div>
             </div>
-          ) : (
-            <form className="space-y-4" onSubmit={onSubmit}>
-              {isCreate ? (
-                <div>
-                  <FieldLabel>Category</FieldLabel>
-                  <select
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-                    required
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
+            {error ? <p className="text-sm text-danger">{error}</p> : null}
+            {message ? <p className="text-sm text-success">{message}</p> : null}
+            <div className="flex flex-wrap gap-2">
+              <PrimaryButton type="submit" disabled={saving}>
+                {saving ? 'Saving…' : 'Create account'}
+              </PrimaryButton>
+              <SecondaryButton
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  clearForm();
+                  setMessage('');
+                }}
+              >
+                Clear
+              </SecondaryButton>
+            </div>
+          </form>
+        ) : null}
+
+        {isEdit ? (
+          <div className="space-y-4">
+            {accountPicker}
+            {selectedId == null || !editAccount ? (
+              <p className="text-sm text-textMuted">Select an account from the results to edit.</p>
+            ) : (
+              <form className="space-y-4" onSubmit={onSubmit}>
                 <div>
                   <FieldLabel>Category</FieldLabel>
                   <div className="app-input-static text-sm">
-                    {editAccount?.category?.name ?? '—'}
+                    {editAccount.category?.name ?? '—'}
                   </div>
                 </div>
-              )}
+                <div>
+                  <FieldLabel>Account name</FieldLabel>
+                  <TextInput value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+                {contactFields}
+                {error ? <p className="text-sm text-danger">{error}</p> : null}
+                {message ? <p className="text-sm text-success">{message}</p> : null}
+                <div className="flex flex-wrap gap-2">
+                  <PrimaryButton type="submit" disabled={saving}>
+                    {saving ? 'Saving…' : 'Save changes'}
+                  </PrimaryButton>
+                </div>
+              </form>
+            )}
+            {selectedId == null ? (
+              <>
+                {error ? <p className="text-sm text-danger">{error}</p> : null}
+                {message ? <p className="text-sm text-success">{message}</p> : null}
+              </>
+            ) : null}
+          </div>
+        ) : null}
 
-              {isEdit && selectedId == null ? (
-                <p className="text-sm text-textMuted">Select an account from the list to edit.</p>
-              ) : (
-                <>
-                  <div>
-                    <FieldLabel>Account name</FieldLabel>
-                    <TextInput
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      disabled={isEdit && selectedId == null}
-                    />
+        {isDelete ? (
+          <div className="space-y-4">
+            {accountPicker}
+            {selectedId == null || !editAccount ? (
+              <p className="text-sm text-textMuted">Select an account from the results to delete.</p>
+            ) : (
+              <>
+                <div>
+                  <FieldLabel>Category</FieldLabel>
+                  <div className="app-input-static text-sm">
+                    {editAccount.category?.name ?? '—'}
                   </div>
-
-                  {contactFields}
-
-                  {isCreate ? (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <FieldLabel>Opening balance</FieldLabel>
-                        <TextInput
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={openingBalance}
-                          onChange={(e) => setOpeningBalance(e.target.value)}
-                          placeholder="0.00 (optional)"
-                        />
-                      </div>
-                      <div>
-                        <FieldLabel>Opening balance side</FieldLabel>
-                        <select
-                          className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                          value={openingBalanceSide}
-                          onChange={(e) => setOpeningBalanceSide(e.target.value as 'DR' | 'CR')}
-                          disabled={!openingBalance.trim() || Number(openingBalance) <= 0}
-                        >
-                          <option value="DR">Dr</option>
-                          <option value="CR">Cr</option>
-                        </select>
-                        {selectedCategory ? (
-                          <p className="mt-1 text-xs text-textMuted">
-                            Default for {selectedCategory.name}:{' '}
-                            {defaultOpeningSideForCategory(selectedCategory.id, accounts)} side
-                          </p>
-                        ) : null}
-                      </div>
+                </div>
+                <div>
+                  <FieldLabel>Account name</FieldLabel>
+                  <div className="app-input-static text-sm">{editAccount.name}</div>
+                </div>
+                <div>
+                  <FieldLabel>Code</FieldLabel>
+                  <div className="app-input-static text-sm">{editAccount.code}</div>
+                </div>
+                {editAccount.category?.collectsContactInfo ? (
+                  <>
+                    <div>
+                      <FieldLabel>Phone</FieldLabel>
+                      <div className="app-input-static text-sm">{editAccount.phone || '—'}</div>
                     </div>
-                  ) : null}
-                </>
-              )}
+                    <div>
+                      <FieldLabel>Address</FieldLabel>
+                      <div className="app-input-static text-sm">{editAccount.address || '—'}</div>
+                    </div>
+                    <div>
+                      <FieldLabel>CNIC</FieldLabel>
+                      <div className="app-input-static text-sm">{editAccount.cnic || '—'}</div>
+                    </div>
+                  </>
+                ) : null}
+              </>
+            )}
 
-              {error ? <p className="text-sm text-danger">{error}</p> : null}
-              {message ? <p className="text-sm text-success">{message}</p> : null}
+            {error ? <p className="text-sm text-danger">{error}</p> : null}
+            {message ? <p className="text-sm text-success">{message}</p> : null}
 
-              <div className="flex flex-wrap gap-2">
-                <PrimaryButton
-                  type="submit"
-                  disabled={saving || (isEdit && selectedId == null)}
-                >
-                  {saving ? 'Saving…' : isCreate ? 'Create account' : 'Save changes'}
-                </PrimaryButton>
-                <SecondaryButton type="button" disabled={saving} onClick={startCreate}>
-                  {isCreate ? 'Clear' : 'New account'}
-                </SecondaryButton>
-              </div>
-            </form>
-          )}
-        </Panel>
-      </div>
+            {isAdmin ? (
+              <DangerButton
+                type="button"
+                disabled={saving || selectedId == null}
+                onClick={() => void onRemove()}
+              >
+                {saving ? 'Removing…' : 'Remove account'}
+              </DangerButton>
+            ) : (
+              <p className="text-sm text-textMuted">Only admins can delete accounts.</p>
+            )}
+          </div>
+        ) : null}
+      </Panel>
     </PageShell>
   );
 }

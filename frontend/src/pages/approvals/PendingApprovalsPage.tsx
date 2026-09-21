@@ -684,31 +684,34 @@ export function PendingApprovalsPage() {
                 const hasActions = isAdmin || editable;
                 return (
                   <tr key={key}>
-                    <td className="whitespace-nowrap">{KIND_LABELS[row.kind]}</td>
-                    <td className="whitespace-nowrap">{row.typeLabel ?? row.recordType ?? '—'}</td>
-                    <td className="whitespace-nowrap">{row.reference ?? row.label ?? '—'}</td>
-                    <td className="whitespace-nowrap">
+                    <td className="align-top whitespace-nowrap">{KIND_LABELS[row.kind]}</td>
+                    <td className="align-top whitespace-nowrap">{row.typeLabel ?? row.recordType ?? '—'}</td>
+                    <td className="align-top whitespace-nowrap">{row.reference ?? row.label ?? '—'}</td>
+                    <td className="align-top whitespace-nowrap">
                       {row.recordDate ? formatDate(row.recordDate) : formatDate(row.createdAt)}
                     </td>
-                    <td className="whitespace-nowrap font-medium text-ledgerDebit">
+                    <td className="max-w-[16rem] whitespace-normal break-words align-top font-medium text-ledgerDebit">
                       {accountCellLabel(row.debitAccount)}
                     </td>
-                    <td className="whitespace-nowrap text-right tabular-nums text-ledgerDebit">
+                    <td className="align-top whitespace-nowrap text-right tabular-nums text-ledgerDebit">
                       {amountCell(row.debitAmount)}
                     </td>
-                    <td className="whitespace-nowrap font-medium text-ledgerCredit">
+                    <td className="max-w-[16rem] whitespace-normal break-words align-top font-medium text-ledgerCredit">
                       {accountCellLabel(row.creditAccount)}
                     </td>
-                    <td className="whitespace-nowrap text-right tabular-nums text-ledgerCredit">
+                    <td className="align-top whitespace-nowrap text-right tabular-nums text-ledgerCredit">
                       {amountCell(row.creditAmount)}
                     </td>
-                    <td className="whitespace-nowrap">
+                    <td className="align-top whitespace-nowrap">
                       {row.createdBy?.displayName ?? row.createdBy?.username ?? '—'}
                     </td>
-                    <td className="max-w-[14rem] truncate" title={row.description ?? undefined}>
+                    <td
+                      className="max-w-[22rem] whitespace-normal break-words line-clamp-2 align-top"
+                      title={row.description ?? undefined}
+                    >
                       {row.description?.trim() ? row.description : '—'}
                     </td>
-                    <td className="whitespace-nowrap">
+                    <td className="align-top whitespace-nowrap">
                       {row.kind === 'invoice' || hasActions ? (
                         <div className="flex items-center gap-2">
                           {isAdmin ? (

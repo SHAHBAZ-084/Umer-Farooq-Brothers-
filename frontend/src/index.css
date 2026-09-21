@@ -1578,9 +1578,9 @@
 
 
 
-  .app-seg-control__btn:hover {
+  .app-seg-control__btn:hover:not(.is-selected) {
 
-    color: var(--text-primary);
+    color: var(--brand);
 
   }
 
@@ -1588,9 +1588,11 @@
 
   .app-seg-control__btn.is-selected {
 
-    background-color: var(--surface-2);
+    background-color: var(--fill-accent);
 
-    color: var(--text-primary);
+    color: var(--on-accent);
+
+    font-weight: 600;
 
   }
 
@@ -2395,7 +2397,7 @@
 
     font-size: 0.8125rem;
 
-    vertical-align: middle;
+    vertical-align: top;
 
   }
 

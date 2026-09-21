@@ -195,7 +195,6 @@ export function invoiceTypeLabel(type: InvoiceType): string {
 /** Display names for General Goods system accounts (must match ensureGeneralGoodsAccounts). */
 export const GENERAL_GOODS_MAZDURI_ACCOUNT_NAME = 'General Goods Mazduri';
 export const GENERAL_GOODS_SALE_REVENUE_ACCOUNT_NAME = 'General Goods Sale Revenue';
-export const GENERAL_TRADE_REVENUE_ACCOUNT_NAME = 'General Trade Revenue';
 
 export function joinApprovalAccounts(refs: ApprovalAccountRef[]): ApprovalAccountRef | null {
   const cleaned = aggregateAccountRefs(refs);
@@ -363,7 +362,6 @@ export function invoiceApprovalAccounts(invoice: {
         0,
       ),
     );
-    const margin = roundMoney(saleTotal - purchaseTotal);
     const debitRefs: ApprovalAccountRef[] = [];
     const creditRefs: ApprovalAccountRef[] = [];
     if (invoice.salePartyAccount) {
@@ -383,11 +381,6 @@ export function invoiceApprovalAccounts(invoice: {
           purchaseTotal > 0 ? purchaseTotal : undefined,
         ),
       );
-    }
-    if (margin > 0) {
-      creditRefs.push(accountRef(GENERAL_TRADE_REVENUE_ACCOUNT_NAME, 'GT-PREV', margin));
-    } else if (margin < 0) {
-      debitRefs.push(accountRef(GENERAL_TRADE_REVENUE_ACCOUNT_NAME, 'GT-PREV', Math.abs(margin)));
     }
     return withSideTotals(
       joinApprovalAccounts(debitRefs),
