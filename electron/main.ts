@@ -5,7 +5,9 @@ import path from 'path';
 import { autoUpdater } from 'electron-updater';
 import { formatBackupFilename, getDatabaseFilePath } from './database-path';
 
-const isDev = process.env.NODE_ENV === 'development' || process.env.ELECTRON_DEV === '1';
+const isDev =
+  !app.isPackaged
+  && (process.env.NODE_ENV === 'development' || process.env.ELECTRON_DEV === '1');
 const BACKEND_PORT = process.env.PORT ?? '3847';
 
 /** Backend runs out-of-process so cancel/delete cannot freeze Electron's UI thread. */
