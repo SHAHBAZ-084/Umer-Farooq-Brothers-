@@ -163,3 +163,26 @@ export async function postSalePaunchEmptyBardanaOut(
     });
   }
 }
+
+/** Undo empty-bardana OUT rows posted for a Sale Paunch invoice. */
+export async function reverseEmptyBardanaForInvoiceInTx(tx: Tx, invoiceId: number) {
+  const movements = await tx.emptyBardanaMovement.findMany({ where: { invoiceId } });
+  if (movements.length === 0) return;
+
+  await ensureBalances(tx);
+
+  for (const row of movements) {
+    const qty = Math.max(0, Number(row.qty) || 0);
+    if (!(qty > 0)) continue;
+    const delta = row.direction === EmptyBardanaDirection.OUT ? qty : -qty;
+    const current = await tx.emptyBardanaBalance.findUniqueOrThrow({
+      where: { bagType: row.bagType },
+    });
+    await tx.emptyBardanaBalance.update({
+      where: { bagType: row.bagType },
+      data: { balance: Number(current.balance) + delta },
+    });
+  }
+
+  await tx.emptyBardanaMovement.deleteMany({ where: { invoiceId } });
+}

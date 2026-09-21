@@ -514,6 +514,9 @@ export const api = {
   getInvoice(id: number) {
     return request<InvoiceDetail>(`/api/invoices/${id}`);
   },
+  cancelInvoice(id: number) {
+    return request<InvoiceDetail>(`/api/invoices/${id}/cancel`, { method: 'POST' });
+  },
   getInvoiceByReference(reference: string) {
     const query = new URLSearchParams({ reference });
     return request<InvoiceDetail>(`/api/invoices/by-reference?${query.toString()}`);

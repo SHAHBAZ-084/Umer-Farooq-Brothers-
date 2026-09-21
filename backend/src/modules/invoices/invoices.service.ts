@@ -3,12 +3,22 @@ import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/helpers';
 import { PaginatedResult } from '../../utils/pagination';
 import { USER_VISIBLE_INVOICE_STATUS } from '../approvals/record-status';
-import { getActiveFinancialYearId } from '../accounting/accounting.service';
+import {
+  cancelActiveVouchersByReferenceInTx,
+  getActiveFinancialYearId,
+} from '../accounting/accounting.service';
+import { reverseEmptyBardanaForInvoiceInTx } from '../inventory/bardana.service';
+import {
+  deleteInvoiceStockMovementsInTx,
+  recomputeAverageCostInTx,
+} from '../stock/quantity-stock.service';
+import { recomputeMaalStockForProductInTx } from '../stock/stock.service';
 import {
   allocateNextInvoiceReference,
   buildInvoiceReference,
   INVOICE_TYPE_PREFIX,
 } from './invoice-reference';
+import { voucherReferenceFromBillNo } from './invoice-voucher-descriptions';
 
 export { INVOICE_TYPE_PREFIX, buildInvoiceReference };
 
@@ -96,9 +106,116 @@ function assertInvoiceVisibleForBill(invoice: { status: InvoiceStatus }) {
   if (
     invoice.status !== InvoiceStatus.POSTED
     && invoice.status !== InvoiceStatus.PENDING_APPROVAL
+    && invoice.status !== InvoiceStatus.CANCELLED
   ) {
     throw new AppError(404, 'Invoice not found');
   }
+}
+
+/** Match the reference each invoice type uses when creating its voucher(s). */
+export function invoiceVoucherReference(invoice: {
+  type: InvoiceType;
+  reference: string;
+  billNo?: string | null;
+}): string {
+  switch (invoice.type) {
+    case InvoiceType.GENERAL_TRADE:
+    case InvoiceType.PURCHASE_GENERAL:
+    case InvoiceType.SALE_GENERAL:
+      return invoice.reference;
+    case InvoiceType.KACHI_MAAL:
+    case InvoiceType.PURCHASE_MAAL:
+    case InvoiceType.SALE_COMMISSION:
+    case InvoiceType.SALE_PAUNCH:
+      return voucherReferenceFromBillNo(invoice.billNo);
+    default:
+      return invoice.reference;
+  }
+}
+
+async function reverseInvoiceStockAfterCancelInTx(
+  tx: Prisma.TransactionClient,
+  invoice: {
+    id: number;
+    type: InvoiceType;
+    productId: number | null;
+    generalPurchaseLines?: { productId: number }[];
+    generalSaleLines?: { productId: number }[];
+  },
+) {
+  switch (invoice.type) {
+    case InvoiceType.PURCHASE_GENERAL:
+    case InvoiceType.GENERAL_TRADE: {
+      const productIds = await deleteInvoiceStockMovementsInTx(tx, invoice.id);
+      const fromLines = [
+        ...(invoice.generalPurchaseLines ?? []).map((line) => line.productId),
+        ...productIds,
+      ];
+      for (const productId of [...new Set(fromLines)]) {
+        await recomputeAverageCostInTx(tx, productId);
+      }
+      return;
+    }
+    case InvoiceType.SALE_GENERAL: {
+      await deleteInvoiceStockMovementsInTx(tx, invoice.id);
+      return;
+    }
+    case InvoiceType.PURCHASE_MAAL: {
+      if (invoice.productId == null) {
+        throw new AppError(400, 'Purchase Maal invoice missing product');
+      }
+      await recomputeMaalStockForProductInTx(tx, invoice.productId);
+      return;
+    }
+    case InvoiceType.SALE_PAUNCH: {
+      await deleteInvoiceStockMovementsInTx(tx, invoice.id);
+      await reverseEmptyBardanaForInvoiceInTx(tx, invoice.id);
+      return;
+    }
+    case InvoiceType.KACHI_MAAL:
+    case InvoiceType.SALE_COMMISSION:
+    default:
+      return;
+  }
+}
+
+export async function cancelInvoice(invoiceId: number, userId: number) {
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        generalPurchaseLines: { select: { productId: true } },
+        generalSaleLines: { select: { productId: true } },
+      },
+    });
+    if (!invoice) throw new AppError(404, 'Invoice not found');
+    if (invoice.status === InvoiceStatus.CANCELLED) {
+      throw new AppError(400, 'Invoice is already cancelled');
+    }
+
+    const wasPosted = invoice.status === InvoiceStatus.POSTED;
+
+    if (wasPosted) {
+      await cancelActiveVouchersByReferenceInTx(
+        tx,
+        invoiceVoucherReference(invoice),
+        userId,
+      );
+    }
+
+    // Cancel first so POSTED-only stock recomputes exclude this invoice.
+    const updated = await tx.invoice.update({
+      where: { id: invoiceId },
+      data: { status: InvoiceStatus.CANCELLED },
+      include: invoiceDetailInclude,
+    });
+
+    if (wasPosted) {
+      await reverseInvoiceStockAfterCancelInTx(tx, invoice);
+    }
+
+    return updated;
+  });
 }
 
 export async function getInvoice(id: number) {

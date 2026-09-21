@@ -1,4 +1,4 @@
-import { InvoiceType, Prisma, StockDirection } from '@prisma/client';
+import { InvoiceStatus, InvoiceType, Prisma, StockDirection } from '@prisma/client';
 import { AppError } from '../../utils/helpers';
 import { roundMoney } from '../invoices/purchase-maal.calculations';
 
@@ -119,4 +119,133 @@ export async function applyPurchaseWeightedAverageCost(
   });
 
   return next;
+}
+
+/**
+ * Replay Product.averageCost from remaining POSTED purchase history.
+ * Sale OUT events adjust running qty only — matching live applyPurchaseWeightedAverageCost
+ * which reads getProductQuantityOnHand before each purchase.
+ * Call AFTER this invoice is CANCELLED and its ProductQuantityMovement rows are deleted.
+ */
+export async function recomputeAverageCostInTx(tx: Tx, productId: number) {
+  await tx.product.update({
+    where: { id: productId },
+    data: { averageCost: null },
+  });
+
+  const purchaseLines = await tx.generalPurchaseLine.findMany({
+    where: {
+      productId,
+      invoice: {
+        status: InvoiceStatus.POSTED,
+        type: { in: [InvoiceType.PURCHASE_GENERAL, InvoiceType.GENERAL_TRADE] },
+      },
+    },
+    include: {
+      invoice: { select: { id: true, invoiceDate: true, createdAt: true } },
+    },
+  });
+
+  const saleLines = await tx.generalSaleLine.findMany({
+    where: {
+      productId,
+      invoice: {
+        status: InvoiceStatus.POSTED,
+        type: { in: [InvoiceType.SALE_GENERAL, InvoiceType.GENERAL_TRADE] },
+      },
+    },
+    include: {
+      invoice: { select: { id: true, invoiceDate: true, createdAt: true } },
+    },
+  });
+
+  type Event = {
+    sortDate: number;
+    invoiceId: number;
+    lineId: number;
+    kind: 'purchase' | 'sale';
+    qty: number;
+    purchaseValue?: number;
+  };
+
+  const events: Event[] = [];
+  for (const line of purchaseLines) {
+    const d = line.invoice.invoiceDate ?? line.invoice.createdAt;
+    events.push({
+      sortDate: d.getTime(),
+      invoiceId: line.invoiceId,
+      lineId: line.id,
+      kind: 'purchase',
+      qty: Number(line.quantity),
+      purchaseValue: roundMoney(Number(line.lineTotal) + Number(line.mazduriAmount)),
+    });
+  }
+  for (const line of saleLines) {
+    const d = line.invoice.invoiceDate ?? line.invoice.createdAt;
+    events.push({
+      sortDate: d.getTime(),
+      invoiceId: line.invoiceId,
+      lineId: line.id,
+      kind: 'sale',
+      qty: Number(line.quantity),
+    });
+  }
+
+  events.sort((a, b) => {
+    if (a.sortDate !== b.sortDate) return a.sortDate - b.sortDate;
+    if (a.invoiceId !== b.invoiceId) return a.invoiceId - b.invoiceId;
+    // Match GENERAL_TRADE post order: WAC/purchase before sale OUT on same invoice.
+    if (a.kind !== b.kind) return a.kind === 'purchase' ? -1 : 1;
+    return a.lineId - b.lineId;
+  });
+
+  let qty = 0;
+  let avg: number | null = null;
+  for (const event of events) {
+    if (event.kind === 'purchase') {
+      avg = computeWeightedAverageCost({
+        oldQty: qty,
+        oldAverageCost: avg,
+        purchaseQty: event.qty,
+        purchaseValue: event.purchaseValue ?? 0,
+      });
+      qty = roundMoney(qty + event.qty);
+    } else {
+      qty = roundMoney(qty - event.qty);
+    }
+  }
+
+  await tx.product.update({
+    where: { id: productId },
+    data: { averageCost: avg },
+  });
+
+  return avg;
+}
+
+/** Delete quantity + Sale Paunch bag OUT rows for one invoice. Returns touched productIds. */
+export async function deleteInvoiceStockMovementsInTx(tx: Tx, invoiceId: number) {
+  const qtyRows = await tx.productQuantityMovement.findMany({
+    where: { invoiceId },
+    select: { productId: true },
+  });
+  const bagOutRows = await tx.stockMovement.findMany({
+    where: {
+      invoiceId,
+      invoiceType: InvoiceType.SALE_PAUNCH,
+      direction: StockDirection.OUT,
+    },
+    select: { productId: true },
+  });
+
+  await tx.productQuantityMovement.deleteMany({ where: { invoiceId } });
+  await tx.stockMovement.deleteMany({
+    where: {
+      invoiceId,
+      invoiceType: InvoiceType.SALE_PAUNCH,
+      direction: StockDirection.OUT,
+    },
+  });
+
+  return [...new Set([...qtyRows, ...bagOutRows].map((row) => row.productId))];
 }

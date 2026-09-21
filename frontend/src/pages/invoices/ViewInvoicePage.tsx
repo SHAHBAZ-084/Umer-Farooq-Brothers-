@@ -5,7 +5,16 @@ import { jsPDF } from 'jspdf';
 import { INVOICE_TYPE_LABELS } from '../../config/navigation';
 import { ApiRequestError, api, type InvoiceDetail, type SystemPreferences } from '../../lib/api';
 import { buildInvoiceReference, type InvoiceTypeKey } from '../../lib/invoiceReference';
-import { FieldLabel, FinancialButton, PageShell, Panel, SecondaryButton, TextInput } from '../../components/ui/PageShell';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  DangerButton,
+  FieldLabel,
+  FinancialButton,
+  PageShell,
+  Panel,
+  SecondaryButton,
+  TextInput,
+} from '../../components/ui/PageShell';
 import { SearchSelect } from '../../components/ui/SearchSelect';
 import { InvoiceBillView } from './InvoiceBillView';
 
@@ -48,6 +57,8 @@ function isInvoiceNotFoundError(err: unknown): boolean {
 }
 
 export function ViewInvoicePage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [searchParams] = useSearchParams();
   const printRef = useRef<HTMLDivElement>(null);
   const autoFetchedKey = useRef<string | null>(null);
@@ -63,14 +74,17 @@ export function ViewInvoicePage() {
   const [invoiceNumber, setInvoiceNumber] = useState(initialNumber);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [prefs, setPrefs] = useState<SystemPreferences | null>(null);
   const [notFoundRef, setNotFoundRef] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const autoPrintDone = useRef(false);
 
   const fetchInvoiceById = useCallback(async (id: number) => {
     setError('');
+    setMessage('');
     setNotFoundRef(null);
     setInvoice(null);
     setPrefs(null);
@@ -98,6 +112,7 @@ export function ViewInvoicePage() {
 
   const fetchInvoice = useCallback(async (type: InvoiceTypeKey, numberText: string) => {
     setError('');
+    setMessage('');
     setNotFoundRef(null);
     setInvoice(null);
     setPrefs(null);
@@ -187,6 +202,26 @@ export function ViewInvoicePage() {
     }
   }
 
+  async function onDeleteInvoice() {
+    if (!invoice || invoice.status === 'CANCELLED') return;
+    const ok = window.confirm(
+      `Delete invoice ${invoice.reference}? This reverses all its ledger entries if it was posted.`,
+    );
+    if (!ok) return;
+    setError('');
+    setMessage('');
+    setDeleting(true);
+    try {
+      const updated = await api.cancelInvoice(invoice.id);
+      setInvoice(updated);
+      setMessage(`Invoice ${updated.reference} deleted.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <PageShell title="View Invoice" subtitle="Look up a bill by type and number (posted or pending)">
       <Panel className="mb-6 print:hidden">
@@ -217,6 +252,7 @@ export function ViewInvoicePage() {
           </FinancialButton>
         </form>
         {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
+        {message ? <p className="mt-4 text-sm text-success">{message}</p> : null}
         {notFoundRef ? (
           <p className="mt-4 text-sm text-textSecondary">
             No invoice found for <strong className="text-textPrimary">{notFoundRef}</strong>.
@@ -226,10 +262,24 @@ export function ViewInvoicePage() {
 
       {invoice ? (
         <div className="space-y-4">
-          <div className="flex justify-end print:hidden">
+          {invoice.status === 'CANCELLED' ? (
+            <p className="rounded border border-danger/40 bg-bg-danger px-3 py-2 text-sm font-medium text-danger">
+              This invoice has been cancelled
+            </p>
+          ) : null}
+          <div className="flex justify-end gap-2 print:hidden">
             <SecondaryButton type="button" disabled={downloading} onClick={onDownloadPdf}>
               {downloading ? 'Generating PDF…' : 'Download PDF'}
             </SecondaryButton>
+            {isAdmin && invoice.status !== 'CANCELLED' ? (
+              <DangerButton
+                type="button"
+                disabled={deleting || downloading}
+                onClick={() => void onDeleteInvoice()}
+              >
+                {deleting ? 'Deleting…' : 'Delete Invoice'}
+              </DangerButton>
+            ) : null}
           </div>
           <div className="overflow-x-auto rounded-lg border border-border bg-surface2 p-4">
             <div ref={printRef} className="mx-auto w-[800px] max-w-full shadow-sm">

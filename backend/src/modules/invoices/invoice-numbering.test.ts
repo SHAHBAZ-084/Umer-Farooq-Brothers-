@@ -24,6 +24,7 @@ import {
   createPurchaseGeneralInvoice,
   getNextPurchaseGeneralReference,
 } from './purchase-general.service';
+import { cancelInvoice } from './invoices.service';
 
 async function accountByName(name: string) {
   const accounts = await listAccounts();
@@ -260,5 +261,35 @@ describe('cancelled numbering reuse', () => {
     const afterMiddleCancelled = await createPurchaseGeneral();
     expect(afterMiddleCancelled.number).toBe(4);
     expect(afterMiddleCancelled.reference).toBe('PG-00004');
+  });
+
+  it('cancelInvoice: deleting #1 keeps 2–5 and next is #6; deleting all restarts at #1', async () => {
+    const created = [];
+    for (let i = 0; i < 5; i += 1) {
+      created.push(await createPurchaseGeneral());
+    }
+    expect(created.map((row) => row.number)).toEqual([1, 2, 3, 4, 5]);
+
+    await cancelInvoice(created[0]!.id, userId);
+
+    const stillActive = await prisma.invoice.findMany({
+      where: { id: { in: created.slice(1).map((row) => row.id) } },
+      select: { number: true, status: true },
+      orderBy: { number: 'asc' },
+    });
+    expect(stillActive.map((row) => row.number)).toEqual([2, 3, 4, 5]);
+    expect(stillActive.every((row) => row.status === InvoiceStatus.PENDING_APPROVAL)).toBe(true);
+
+    const sixth = await createPurchaseGeneral();
+    createdInvoiceIds.push(sixth.id);
+    expect(sixth.number).toBe(6);
+
+    for (const row of [...created.slice(1), sixth]) {
+      await cancelInvoice(row.id, userId);
+    }
+
+    const restarted = await createPurchaseGeneral();
+    expect(restarted.number).toBe(1);
+    expect(restarted.reference).toBe('PG-00001');
   });
 });

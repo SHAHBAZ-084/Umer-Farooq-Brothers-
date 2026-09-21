@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { InvoiceType } from '@prisma/client';
 import { z } from 'zod';
-import { requireAuth } from '../../middleware/auth';
+import { requireAdmin, requireAuth } from '../../middleware/auth';
 import { asyncHandler, param, validateBody } from '../../utils/helpers';
 import { parsePagination } from '../../utils/pagination';
 import * as invoicesService from './invoices.service';
@@ -65,6 +65,19 @@ invoicesRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
     res.json(await invoicesService.getInvoice(parseInt(param(req.params.id), 10)));
+  }),
+);
+
+invoicesRouter.post(
+  '/:id/cancel',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    res.json(
+      await invoicesService.cancelInvoice(
+        parseInt(param(req.params.id), 10),
+        req.session.userId!,
+      ),
+    );
   }),
 );
 

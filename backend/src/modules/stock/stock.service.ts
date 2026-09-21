@@ -1,5 +1,6 @@
 import {
   BoriThelaMode,
+  InvoiceStatus,
   InvoiceType,
   Prisma,
   StockBagType,
@@ -166,6 +167,55 @@ export async function postPurchaseMaalStockIn(
 
   for (const [bagType, remainderKg] of remainders) {
     await setCarriedRemainderKg(tx, data.productId, bagType, remainderKg);
+  }
+}
+
+/**
+ * Full Maal bag-stock replay for one product: wipe PURCHASE_MAAL IN + remainders,
+ * then re-run postPurchaseMaalStockIn for every remaining POSTED PURCHASE_MAAL
+ * invoice for this product (invoiceDate, id ascending).
+ * Call AFTER the cancelled invoice is status CANCELLED.
+ */
+export async function recomputeMaalStockForProductInTx(tx: Tx, productId: number) {
+  await tx.stockMovement.deleteMany({
+    where: {
+      productId,
+      invoiceType: InvoiceType.PURCHASE_MAAL,
+      direction: StockDirection.IN,
+    },
+  });
+
+  for (const bagType of [StockBagType.BORI, StockBagType.THELA]) {
+    await setCarriedRemainderKg(tx, productId, bagType, 0);
+  }
+
+  const invoices = await tx.invoice.findMany({
+    where: {
+      productId,
+      type: InvoiceType.PURCHASE_MAAL,
+      status: InvoiceStatus.POSTED,
+    },
+    include: {
+      purchaseMaalLines: { orderBy: { sortOrder: 'asc' } },
+    },
+    orderBy: [{ invoiceDate: 'asc' }, { id: 'asc' }],
+  });
+
+  for (const invoice of invoices) {
+    const invoiceDate = invoice.invoiceDate ?? invoice.createdAt;
+    await postPurchaseMaalStockIn(tx, {
+      productId,
+      invoiceId: invoice.id,
+      invoiceReference: invoice.reference,
+      invoiceDate,
+      lines: invoice.purchaseMaalLines.map((line) => ({
+        boriOrThelaMode: line.boriOrThelaMode,
+        bagCount: Number(line.bagCount),
+        bhartii: Number(line.bhartii),
+        dharanCount: Number(line.dharanCount),
+        looseKg: Number(line.looseKg),
+      })),
+    });
   }
 }
 
