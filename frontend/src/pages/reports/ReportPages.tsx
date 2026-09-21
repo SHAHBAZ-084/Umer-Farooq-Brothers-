@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, type Account, type AccountCategory, type Voucher } from '../../lib/api';
 import { DEFAULT_BUSINESS_INFO, loadBusinessInfo } from '../../lib/businessInfo';
+import { APP_HOME_PATH } from '../../config/routes';
 import { formatDate, formatLedgerAmount, formatLedgerBalance, formatVoucherNumber, formatVoucherTypeLabel, ledgerBalanceColorClass, ledgerCreditColorClass, ledgerDebitColorClass, voucherTypeColorClass } from '../../lib/format';
 import { downloadExcel, downloadPdf, formatBusinessContactLine, printReportPdf, type ReportBusinessInfo } from '../../lib/reportExport';
 import { useReportFinancialYear } from '../../contexts/ReportFinancialYearContext';
@@ -24,6 +26,24 @@ type BalanceSideFilter = 'debit' | 'credit' | 'both';
 type VoucherTypeFilter = 'all' | 'PAYMENT' | 'RECEIPT' | 'JOURNAL' | 'KACHI' | 'PURCHASE_MAAL';
 
 export const REPORT_PAGE_SIZE = 30;
+
+/**
+ * Filter-modal Close: dismiss filters after a report loaded; otherwise leave the
+ * page (same as PageShell Close). Previously `if (loaded)` no-op trapped users.
+ */
+function useReportFilterModalClose(
+  loaded: boolean,
+  setFiltersOpen: (open: boolean) => void,
+) {
+  const navigate = useNavigate();
+  return () => {
+    if (loaded) {
+      setFiltersOpen(false);
+      return;
+    }
+    navigate({ pathname: APP_HOME_PATH, search: '', hash: '' }, { replace: true });
+  };
+}
 
 /** Shared on-screen letterhead used above every report results block. */
 function ReportLetterheadBlock({
@@ -153,6 +173,7 @@ export function AccountReportsPage() {
   const [error, setError] = useState('');
   const [offset, setOffset] = useState(0);
   const businessInfo = useReportBusinessInfo();
+  const onFiltersClose = useReportFilterModalClose(loaded, setFiltersOpen);
   const dateDefaultsAppliedRef = useRef(false);
 
   const filteredAccounts = useMemo(
@@ -306,7 +327,7 @@ export function AccountReportsPage() {
       <Modal
         open={filtersOpen}
         title="Account Ledger"
-        onClose={() => { if (loaded) setFiltersOpen(false); }}
+        onClose={onFiltersClose}
         footer={
           <>
             <PrimaryButton type="button" onClick={() => void loadLedger(0)} disabled={loading || !financialYearId}>
@@ -460,6 +481,7 @@ export function TrialBalancePage() {
   const [error, setError] = useState('');
   const [offset, setOffset] = useState(0);
   const businessInfo = useReportBusinessInfo();
+  const onFiltersClose = useReportFilterModalClose(loaded, setFiltersOpen);
 
   useEffect(() => {
     setLoaded(false);
@@ -562,7 +584,7 @@ export function TrialBalancePage() {
       <Modal
         open={filtersOpen}
         title="Detail Trial Balance"
-        onClose={() => { if (loaded) setFiltersOpen(false); }}
+        onClose={onFiltersClose}
         footer={
           <>
             <PrimaryButton type="button" onClick={() => void loadTrialBalance(0)} disabled={loading || !financialYearId}>
@@ -714,6 +736,7 @@ export function SalePurchaseReportsPage() {
   const [error, setError] = useState('');
   const [offset, setOffset] = useState(0);
   const businessInfo = useReportBusinessInfo();
+  const onFiltersClose = useReportFilterModalClose(loaded, setFiltersOpen);
   const dateDefaultsAppliedRef = useRef(false);
 
   useEffect(() => {
@@ -913,7 +936,7 @@ export function SalePurchaseReportsPage() {
       <Modal
         open={filtersOpen}
         title="Sale/Purchase Reports"
-        onClose={() => { if (loaded) setFiltersOpen(false); }}
+        onClose={onFiltersClose}
         footer={
           <>
             <FinancialButton type="button" onClick={onView} disabled={loading}>
@@ -1122,6 +1145,7 @@ export function StockReportPage() {
   const [error, setError] = useState('');
   const [offset, setOffset] = useState(0);
   const businessInfo = useReportBusinessInfo();
+  const onFiltersClose = useReportFilterModalClose(loaded, setFiltersOpen);
 
   useEffect(() => {
     api.listProducts()
@@ -1193,7 +1217,7 @@ export function StockReportPage() {
       <Modal
         open={filtersOpen}
         title="Stock Report"
-        onClose={() => { if (loaded) setFiltersOpen(false); }}
+        onClose={onFiltersClose}
         footer={
           <>
             <FinancialButton type="button" onClick={onLoad} disabled={loading}>
@@ -1466,6 +1490,7 @@ export function AccountBalancePage() {
   const [error, setError] = useState('');
   const [offset, setOffset] = useState(0);
   const businessInfo = useReportBusinessInfo();
+  const onFiltersClose = useReportFilterModalClose(loaded, setFiltersOpen);
 
   useEffect(() => {
     api.listCategories()
@@ -1589,7 +1614,7 @@ export function AccountBalancePage() {
       <Modal
         open={filtersOpen}
         title="Account Balance"
-        onClose={() => { if (loaded) setFiltersOpen(false); }}
+        onClose={onFiltersClose}
         footer={
           <>
             <FinancialButton type="button" onClick={() => void loadReport(0)} disabled={loading || !financialYearId}>
@@ -1737,6 +1762,7 @@ export function VouchersReportPage() {
   const [cancelling, setCancelling] = useState(false);
   const [updating, setUpdating] = useState(false);
   const businessInfo = useReportBusinessInfo();
+  const onFiltersClose = useReportFilterModalClose(loaded, setFiltersOpen);
   const dateDefaultsAppliedRef = useRef(false);
 
   useEffect(() => {
@@ -1889,7 +1915,7 @@ export function VouchersReportPage() {
       <Modal
         open={filtersOpen}
         title="Vouchers Report"
-        onClose={() => { if (loaded) setFiltersOpen(false); }}
+        onClose={onFiltersClose}
         footer={
           <>
             <FinancialButton type="button" onClick={() => void loadReport(0)} disabled={loading || !financialYearId}>
