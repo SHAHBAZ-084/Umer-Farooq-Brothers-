@@ -1,6 +1,14 @@
 import type { NextFunction, Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/helpers';
 import { logger } from '../lib/logger';
+
+function isPrismaTransactionTimeout(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError
+    && err.code === 'P2028'
+  );
+}
 
 export function errorHandler(
   err: unknown,
@@ -12,6 +20,14 @@ export function errorHandler(
     res.status(err.statusCode).json({
       error: err.message,
       ...(err.code ? { code: err.code } : {}),
+    });
+    return;
+  }
+
+  if (isPrismaTransactionTimeout(err)) {
+    res.status(504).json({
+      error: 'Operation timed out. Please try again.',
+      code: 'TRANSACTION_TIMEOUT',
     });
     return;
   }

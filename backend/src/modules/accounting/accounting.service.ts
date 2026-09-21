@@ -705,14 +705,29 @@ async function recomputeLedgerRunningBalancesInTx(
     running = predecessor != null ? Number(predecessor.balance) : opening;
   }
 
+  const pendingBalanceUpdates: Array<{ id: number; balance: number }> = [];
   for (const entry of entries) {
     const debit = entry.type === LedgerEntryType.DEBIT ? Number(entry.amount) : 0;
     const credit = entry.type === LedgerEntryType.CREDIT ? Number(entry.amount) : 0;
     running = computeLedgerBalance(running, debit, credit);
     const stored = Number(entry.balance);
     if (Math.abs(stored - running) >= 0.005) {
-      await tx.ledgerEntry.update({ where: { id: entry.id }, data: { balance: running } });
+      pendingBalanceUpdates.push({ id: entry.id, balance: running });
     }
+  }
+
+  // Batch updates to avoid one SQLite round-trip per drifted row (was ~6.5s for 5k rows).
+  const BALANCE_UPDATE_CHUNK = 200;
+  for (let i = 0; i < pendingBalanceUpdates.length; i += BALANCE_UPDATE_CHUNK) {
+    const chunk = pendingBalanceUpdates.slice(i, i + BALANCE_UPDATE_CHUNK);
+    if (chunk.length === 0) continue;
+    const caseSql = chunk
+      .map((row) => `WHEN ${row.id} THEN ${Number(row.balance)}`)
+      .join(' ');
+    const idList = chunk.map((row) => row.id).join(',');
+    await tx.$executeRawUnsafe(
+      `UPDATE "LedgerEntry" SET balance = CASE id ${caseSql} END WHERE id IN (${idList})`,
+    );
   }
 
   await tx.ledger.update({ where: { id: ledgerId }, data: { balance: running } });
@@ -3192,6 +3207,7 @@ export async function cancelVoucherInTx(
   voucherId: number,
   userId: number,
 ) {
+  const cancelStarted = Date.now();
   const voucher = await tx.voucher.findFirst({
     where: { id: voucherId },
   });
@@ -3201,11 +3217,13 @@ export async function cancelVoucherInTx(
   }
   await assertActiveFinancialYear(tx, voucher.financialYearId);
 
+  const reverseStarted = Date.now();
   await reverseVoucherLedgerEntries(
     tx,
     voucher,
     `Reversal — cancelled voucher #${formatVoucherLabel(voucher.type, voucher.number)}`,
   );
+  const reverseMs = Date.now() - reverseStarted;
 
   const now = new Date();
   const updated = await tx.voucher.update({
@@ -3230,11 +3248,28 @@ export async function cancelVoucherInTx(
     voucherType: voucher.type,
     entryId: -1,
   };
+  const recomputeStarted = Date.now();
   for (const ledgerId of ledgerIds) {
+    const ledgerStarted = Date.now();
     await recomputeLedgerRunningBalancesInTx(tx, ledgerId, voucher.financialYearId!, from);
+    logger.info('cancelVoucherInTx: ledger recompute', {
+      voucherId,
+      ledgerId,
+      ms: Date.now() - ledgerStarted,
+    });
   }
+  const recomputeMs = Date.now() - recomputeStarted;
 
+  const assertStarted = Date.now();
   await assertBooksBalancedInTx(tx, ledgerIds);
+  logger.info('cancelVoucherInTx: done', {
+    voucherId,
+    ledgerCount: ledgerIds.length,
+    reverseMs,
+    recomputeMs,
+    assertMs: Date.now() - assertStarted,
+    totalMs: Date.now() - cancelStarted,
+  });
 
   return updated;
 }

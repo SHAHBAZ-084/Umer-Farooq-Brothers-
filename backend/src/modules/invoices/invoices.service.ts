@@ -1,6 +1,7 @@
 import { InvoiceStatus, InvoiceType, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/helpers';
+import { logger } from '../../lib/logger';
 import { PaginatedResult } from '../../utils/pagination';
 import { USER_VISIBLE_INVOICE_STATUS } from '../approvals/record-status';
 import {
@@ -21,6 +22,22 @@ import {
 import { voucherReferenceFromBillNo } from './invoice-voucher-descriptions';
 
 export { INVOICE_TYPE_PREFIX, buildInvoiceReference };
+
+/** Test-only hooks for cancelInvoice timeout / delay injection. */
+export const cancelInvoiceTestHooks = {
+  /** Hold the cancel transaction open this many ms (to exercise timeout). */
+  holdMs: 0,
+};
+
+/** Interactive transaction limits for cancelInvoice (overridable in tests). */
+export const cancelInvoiceTxOptions = {
+  timeout: 15_000,
+  maxWait: 5_000,
+};
+
+function elapsedMs(startedAt: number) {
+  return Math.round(Date.now() - startedAt);
+}
 
 export async function listInvoices(
   filters?: { type?: InvoiceType; status?: InvoiceStatus },
@@ -180,42 +197,102 @@ async function reverseInvoiceStockAfterCancelInTx(
 }
 
 export async function cancelInvoice(invoiceId: number, userId: number) {
-  return prisma.$transaction(async (tx) => {
-    const invoice = await tx.invoice.findUnique({
-      where: { id: invoiceId },
-      include: {
-        generalPurchaseLines: { select: { productId: true } },
-        generalSaleLines: { select: { productId: true } },
+  const totalStarted = Date.now();
+  logger.info('cancelInvoice: start', { invoiceId, userId });
+
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const loadStarted = Date.now();
+        const invoice = await tx.invoice.findUnique({
+          where: { id: invoiceId },
+          include: {
+            generalPurchaseLines: { select: { productId: true } },
+            generalSaleLines: { select: { productId: true } },
+          },
+        });
+        logger.info('cancelInvoice: loaded invoice', {
+          invoiceId,
+          type: invoice?.type,
+          status: invoice?.status,
+          productId: invoice?.productId,
+          ms: elapsedMs(loadStarted),
+        });
+        if (!invoice) throw new AppError(404, 'Invoice not found');
+        if (invoice.status === InvoiceStatus.CANCELLED) {
+          throw new AppError(400, 'Invoice is already cancelled');
+        }
+
+        if (cancelInvoiceTestHooks.holdMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, cancelInvoiceTestHooks.holdMs));
+        }
+
+        const wasPosted = invoice.status === InvoiceStatus.POSTED;
+
+        if (wasPosted) {
+          const voucherStarted = Date.now();
+          await cancelActiveVouchersByReferenceInTx(
+            tx,
+            invoiceVoucherReference(invoice),
+            userId,
+          );
+          logger.info('cancelInvoice: voucher reversal done', {
+            invoiceId,
+            reference: invoiceVoucherReference(invoice),
+            ms: elapsedMs(voucherStarted),
+          });
+        }
+
+        // Cancel first so POSTED-only stock recomputes exclude this invoice.
+        const statusStarted = Date.now();
+        const updated = await tx.invoice.update({
+          where: { id: invoiceId },
+          data: { status: InvoiceStatus.CANCELLED },
+          include: invoiceDetailInclude,
+        });
+        logger.info('cancelInvoice: status CANCELLED + detail include', {
+          invoiceId,
+          ms: elapsedMs(statusStarted),
+        });
+
+        if (wasPosted) {
+          const stockStarted = Date.now();
+          await reverseInvoiceStockAfterCancelInTx(tx, invoice);
+          logger.info('cancelInvoice: stock reverse/replay done', {
+            invoiceId,
+            type: invoice.type,
+            ms: elapsedMs(stockStarted),
+          });
+        }
+
+        logger.info('cancelInvoice: transaction complete', {
+          invoiceId,
+          type: invoice.type,
+          totalMs: elapsedMs(totalStarted),
+        });
+
+        return updated;
       },
-    });
-    if (!invoice) throw new AppError(404, 'Invoice not found');
-    if (invoice.status === InvoiceStatus.CANCELLED) {
-      throw new AppError(400, 'Invoice is already cancelled');
-    }
-
-    const wasPosted = invoice.status === InvoiceStatus.POSTED;
-
-    if (wasPosted) {
-      await cancelActiveVouchersByReferenceInTx(
-        tx,
-        invoiceVoucherReference(invoice),
-        userId,
+      {
+        // Typical cancel ~300ms; headroom for normal ledgers. Fat-ledger worst case
+        // should be improved by batched recompute rather than raising this forever.
+        timeout: cancelInvoiceTxOptions.timeout,
+        maxWait: cancelInvoiceTxOptions.maxWait,
+      },
+    );
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError
+      && err.code === 'P2028'
+    ) {
+      throw new AppError(
+        504,
+        'Delete timed out. The invoice was not cancelled — please try again.',
+        'CANCEL_TIMEOUT',
       );
     }
-
-    // Cancel first so POSTED-only stock recomputes exclude this invoice.
-    const updated = await tx.invoice.update({
-      where: { id: invoiceId },
-      data: { status: InvoiceStatus.CANCELLED },
-      include: invoiceDetailInclude,
-    });
-
-    if (wasPosted) {
-      await reverseInvoiceStockAfterCancelInTx(tx, invoice);
-    }
-
-    return updated;
-  });
+    throw err;
+  }
 }
 
 export async function getInvoice(id: number) {

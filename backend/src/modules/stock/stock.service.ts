@@ -177,6 +177,7 @@ export async function postPurchaseMaalStockIn(
  * Call AFTER the cancelled invoice is status CANCELLED.
  */
 export async function recomputeMaalStockForProductInTx(tx: Tx, productId: number) {
+  const started = Date.now();
   await tx.stockMovement.deleteMany({
     where: {
       productId,
@@ -201,6 +202,7 @@ export async function recomputeMaalStockForProductInTx(tx: Tx, productId: number
     orderBy: [{ invoiceDate: 'asc' }, { id: 'asc' }],
   });
 
+  const replayStarted = Date.now();
   for (const invoice of invoices) {
     const invoiceDate = invoice.invoiceDate ?? invoice.createdAt;
     await postPurchaseMaalStockIn(tx, {
@@ -217,6 +219,14 @@ export async function recomputeMaalStockForProductInTx(tx: Tx, productId: number
       })),
     });
   }
+  // Temporary profiling — remove after hang investigation.
+  console.log('[recomputeMaalStockForProductInTx]', {
+    productId,
+    invoiceCount: invoices.length,
+    wipeAndLoadMs: replayStarted - started,
+    replayMs: Date.now() - replayStarted,
+    totalMs: Date.now() - started,
+  });
 }
 
 export type SalePaunchStockLine = {
