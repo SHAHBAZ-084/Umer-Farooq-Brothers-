@@ -73,10 +73,8 @@ async function main() {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 }
 
-// Auto-start when this file is the process entry (Node CLI or Electron-as-Node child).
-// Electron main used to require() this module; it now spawns a child so require.main
-// is this file even with GRAIN_POS_ELECTRON=1.
-if (require.main === module) {
+// Only auto-start when run directly (not when Electron require()s this module).
+if (require.main === module && process.env.GRAIN_POS_ELECTRON !== '1') {
   main().catch((err) => {
     logger.error('Fatal startup error', { err: String(err) });
     process.exit(1);
