@@ -244,13 +244,21 @@ export async function cancelInvoice(invoiceId: number, userId: number) {
         }
 
         // Cancel first so POSTED-only stock recomputes exclude this invoice.
+        // Lean update only — fat invoiceDetailInclude (nested vouchers/ledgers) was
+        // serializing megabytes back to the UI and freezing the renderer on delete.
         const statusStarted = Date.now();
         const updated = await tx.invoice.update({
           where: { id: invoiceId },
           data: { status: InvoiceStatus.CANCELLED },
-          include: invoiceDetailInclude,
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            reference: true,
+            billNo: true,
+          },
         });
-        logger.info('cancelInvoice: status CANCELLED + detail include', {
+        logger.info('cancelInvoice: status CANCELLED (lean)', {
           invoiceId,
           ms: elapsedMs(statusStarted),
         });

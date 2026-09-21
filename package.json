@@ -1,6 +1,6 @@
 {
   "name": "umer-farooq-pos",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Offline desktop POS for Umer Farooq & Brothers — Electron + React + Express + SQLite",
   "main": "dist-electron/main.js",
@@ -47,7 +47,8 @@
     "asarUnpack": [
       "node_modules/.prisma/**/*",
       "node_modules/@prisma/client/**/*",
-      "node_modules/prisma/**/*"
+      "node_modules/prisma/**/*",
+      "backend/dist/**/*"
     ],
     "extraResources": [
       {

@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } from 'electron';
+import { spawn, type ChildProcess } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { autoUpdater } from 'electron-updater';
@@ -6,6 +7,9 @@ import { formatBackupFilename, getDatabaseFilePath } from './database-path';
 
 const isDev = process.env.NODE_ENV === 'development' || process.env.ELECTRON_DEV === '1';
 const BACKEND_PORT = process.env.PORT ?? '3847';
+
+/** Backend runs out-of-process so cancel/delete cannot freeze Electron's UI thread. */
+let backendChild: ChildProcess | null = null;
 
 /** Resolve Umer Farooq & Brothers icon for window/taskbar (prefer .ico on Windows). */
 function resolveAppIcon(): string | undefined {
@@ -159,6 +163,34 @@ function prepareProductionEnvironment(): void {
   }
 }
 
+function resolveBackendEntry(): string {
+  const relative = path.join('backend', 'dist', 'index.js');
+  const candidates = [
+    // Packaged: asarUnpack copies backend/dist next to the asar
+    path.join(process.resourcesPath, 'app.asar.unpacked', relative),
+    // Unpackaged / local electron . after build
+    path.join(__dirname, '..', relative),
+    path.join(app.getAppPath(), relative),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  throw new Error(`Backend entry not found. Checked:\n${candidates.join('\n')}`);
+}
+
+function stopBackendChild(): void {
+  if (!backendChild || backendChild.killed) {
+    backendChild = null;
+    return;
+  }
+  try {
+    backendChild.kill('SIGTERM');
+  } catch {
+    // ignore
+  }
+  backendChild = null;
+}
+
 async function startBackend(): Promise<void> {
   if (isDev) {
     return;
@@ -166,24 +198,33 @@ async function startBackend(): Promise<void> {
 
   prepareProductionEnvironment();
 
-  const backendEntry = path.join(__dirname, '../backend/dist/index.js');
-  if (!fs.existsSync(backendEntry)) {
-    throw new Error(`Backend entry not found: ${backendEntry}`);
-  }
+  const backendEntry = resolveBackendEntry();
+  logStartupInfo([`[startBackend] spawning ${backendEntry}`]);
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const backend = require(backendEntry) as {
-    startGrainPosServer: () => Promise<{ ok: boolean; error?: string }>;
-  };
+  // Run Node via Electron binary so the UI process never shares the API event loop.
+  backendChild = spawn(process.execPath, [backendEntry], {
+    env: {
+      ...process.env,
+      ELECTRON_RUN_AS_NODE: '1',
+      // Keep GRAIN_POS_ELECTRON=1 (set in prepareProductionEnvironment) for migrations/paths.
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
 
-  if (typeof backend.startGrainPosServer !== 'function') {
-    throw new Error('Backend startGrainPosServer() export missing — rebuild backend.');
-  }
-
-  const result = await backend.startGrainPosServer();
-  if (!result.ok) {
-    throw new Error(result.error || 'Backend failed to start');
-  }
+  backendChild.stdout?.on('data', (chunk: Buffer) => {
+    console.log(`[backend] ${chunk.toString().trimEnd()}`);
+  });
+  backendChild.stderr?.on('data', (chunk: Buffer) => {
+    console.error(`[backend] ${chunk.toString().trimEnd()}`);
+  });
+  backendChild.on('exit', (code, signal) => {
+    console.error(`[backend] exited code=${code} signal=${signal}`);
+    backendChild = null;
+  });
+  backendChild.on('error', (err) => {
+    console.error('[backend] spawn error:', err);
+  });
 }
 
 function createWindow(): void {
@@ -323,6 +364,14 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  stopBackendChild();
+});
+
+app.on('will-quit', () => {
+  stopBackendChild();
 });
 
 type HealthResponse = {

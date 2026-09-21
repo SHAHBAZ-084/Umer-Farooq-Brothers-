@@ -213,7 +213,7 @@ export function ViewInvoicePage() {
     setDeleting(true);
     try {
       const updated = await api.cancelInvoice(invoice.id);
-      setInvoice(updated);
+      setInvoice({ ...invoice, status: updated.status });
       setMessage(`Invoice ${updated.reference} deleted.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed');

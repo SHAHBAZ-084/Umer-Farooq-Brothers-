@@ -515,7 +515,14 @@ export const api = {
     return request<InvoiceDetail>(`/api/invoices/${id}`);
   },
   cancelInvoice(id: number) {
-    return request<InvoiceDetail>(`/api/invoices/${id}/cancel`, { method: 'POST' });
+    return request<{ id: number; type: string; status: string; reference: string; billNo?: string | null }>(
+      `/api/invoices/${id}/cancel`,
+      {
+        method: 'POST',
+        // Server tx limit is 15s; fail the UI slightly after so Delete never spins forever.
+        signal: AbortSignal.timeout(20_000),
+      },
+    );
   },
   getInvoiceByReference(reference: string) {
     const query = new URLSearchParams({ reference });

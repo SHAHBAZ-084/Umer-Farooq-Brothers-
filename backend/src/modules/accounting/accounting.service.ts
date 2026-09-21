@@ -2703,19 +2703,19 @@ async function reverseVoucherLedgerEntries(
     orderBy: { id: 'asc' },
   });
 
-  for (const entry of entries) {
-    await tx.ledgerEntry.create({
-      data: {
-        ledgerId: entry.ledgerId,
-        voucherId: voucher.id,
-        type: entry.type === LedgerEntryType.DEBIT ? LedgerEntryType.CREDIT : LedgerEntryType.DEBIT,
-        amount: entry.amount,
-        balance: 0,
-        notes,
-        isReversal: true,
-      },
-    });
-  }
+  if (entries.length === 0) return;
+
+  await tx.ledgerEntry.createMany({
+    data: entries.map((entry) => ({
+      ledgerId: entry.ledgerId,
+      voucherId: voucher.id,
+      type: entry.type === LedgerEntryType.DEBIT ? LedgerEntryType.CREDIT : LedgerEntryType.DEBIT,
+      amount: entry.amount,
+      balance: 0,
+      notes,
+      isReversal: true,
+    })),
+  });
 }
 
 const voucherInclude = {
@@ -3206,6 +3206,7 @@ export async function cancelVoucherInTx(
   tx: Prisma.TransactionClient,
   voucherId: number,
   userId: number,
+  options?: { lean?: boolean },
 ) {
   const cancelStarted = Date.now();
   const voucher = await tx.voucher.findFirst({
@@ -3226,16 +3227,27 @@ export async function cancelVoucherInTx(
   const reverseMs = Date.now() - reverseStarted;
 
   const now = new Date();
-  const updated = await tx.voucher.update({
-    where: { id: voucher.id },
-    data: {
-      status: VoucherStatus.CANCELLED,
-      deletedById: userId,
-      deletedAt: now,
-      modifiedById: userId,
-    },
-    include: voucherInclude,
-  });
+  // Invoice cancel never reads the returned voucher graph — skip fat include.
+  const updated = options?.lean
+    ? await tx.voucher.update({
+        where: { id: voucher.id },
+        data: {
+          status: VoucherStatus.CANCELLED,
+          deletedById: userId,
+          deletedAt: now,
+          modifiedById: userId,
+        },
+      })
+    : await tx.voucher.update({
+        where: { id: voucher.id },
+        data: {
+          status: VoucherStatus.CANCELLED,
+          deletedById: userId,
+          deletedAt: now,
+          modifiedById: userId,
+        },
+        include: voucherInclude,
+      });
 
   const affectedEntries = await tx.ledgerEntry.findMany({
     where: { voucherId: voucher.id },
@@ -3250,13 +3262,7 @@ export async function cancelVoucherInTx(
   };
   const recomputeStarted = Date.now();
   for (const ledgerId of ledgerIds) {
-    const ledgerStarted = Date.now();
     await recomputeLedgerRunningBalancesInTx(tx, ledgerId, voucher.financialYearId!, from);
-    logger.info('cancelVoucherInTx: ledger recompute', {
-      voucherId,
-      ledgerId,
-      ms: Date.now() - ledgerStarted,
-    });
   }
   const recomputeMs = Date.now() - recomputeStarted;
 
@@ -3269,6 +3275,7 @@ export async function cancelVoucherInTx(
     recomputeMs,
     assertMs: Date.now() - assertStarted,
     totalMs: Date.now() - cancelStarted,
+    lean: Boolean(options?.lean),
   });
 
   return updated;
@@ -3288,7 +3295,7 @@ export async function cancelActiveVouchersByReferenceInTx(
   });
 
   for (const voucher of vouchers) {
-    await cancelVoucherInTx(tx, voucher.id, userId);
+    await cancelVoucherInTx(tx, voucher.id, userId, { lean: true });
   }
 }
 
