@@ -8,7 +8,7 @@ import { formatBackupFilename, getDatabaseFilePath } from './database-path';
 const isDev =
   !app.isPackaged
   && (process.env.NODE_ENV === 'development' || process.env.ELECTRON_DEV === '1');
-const BACKEND_PORT = process.env.PORT ?? '3847';
+const BACKEND_PORT = '3847';
 
 /** Resolve Umer Farooq & Brothers icon for window/taskbar (prefer .ico on Windows). */
 function resolveAppIcon(): string | undefined {
