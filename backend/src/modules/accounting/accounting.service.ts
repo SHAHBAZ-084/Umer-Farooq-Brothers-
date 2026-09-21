@@ -849,9 +849,45 @@ export async function listAccountCategories() {
   });
 }
 
-export async function createAccountCategory(name: string) {
+export async function createAccountCategory(
+  name: string,
+  collectsContactInfo = false,
+) {
   const trimmedName = await assertUniqueCategoryName(name);
-  return prisma.accountCategory.create({ data: { name: trimmedName } });
+  return prisma.accountCategory.create({
+    data: {
+      name: trimmedName,
+      collectsContactInfo: Boolean(collectsContactInfo),
+    },
+  });
+}
+
+export async function updateAccountCategory(
+  id: number,
+  data: { name?: string; collectsContactInfo?: boolean },
+) {
+  const category = await prisma.accountCategory.findFirst({
+    where: { id, isActive: true },
+  });
+  if (!category) throw new AppError(404, 'Category not found');
+
+  const patch: Prisma.AccountCategoryUpdateInput = {};
+
+  if (data.name != null) {
+    patch.name = await assertUniqueCategoryName(data.name, id);
+  }
+  if (data.collectsContactInfo != null) {
+    patch.collectsContactInfo = Boolean(data.collectsContactInfo);
+  }
+
+  if (Object.keys(patch).length === 0) {
+    throw new AppError(400, 'No category fields to update');
+  }
+
+  return prisma.accountCategory.update({
+    where: { id },
+    data: patch,
+  });
 }
 
 export async function softDeleteAccountCategory(id: number) {
@@ -1120,7 +1156,7 @@ export async function createAccount(data: {
     );
   }
 
-  const allowContact = isPartyContactCategoryName(category.name);
+  const allowContact = category.collectsContactInfo;
   const phone = allowContact ? normalizeOptionalContact(data.phone) : null;
   const address = allowContact ? normalizeOptionalContact(data.address) : null;
   const cnic = allowContact ? normalizeOptionalContact(data.cnic) : null;
@@ -1218,12 +1254,16 @@ function normalizeLabel(value: string) {
   return value.trim();
 }
 
-async function assertUniqueCategoryName(name: string) {
+async function assertUniqueCategoryName(name: string, excludeCategoryId?: number) {
   const trimmed = normalizeLabel(name);
   if (!trimmed) throw new AppError(400, 'Category name is required');
 
   const existing = await prisma.accountCategory.findFirst({
-    where: { isActive: true, name: { equals: trimmed } },
+    where: {
+      isActive: true,
+      name: { equals: trimmed },
+      ...(excludeCategoryId != null ? { id: { not: excludeCategoryId } } : {}),
+    },
   });
   if (existing) {
     throw new AppError(400, `Category "${existing.name}" already exists`);
@@ -1251,7 +1291,7 @@ async function assertUniquePartyPhone(phone: string, excludeAccountId?: number) 
   const existing = await prisma.account.findFirst({
     where: {
       phone: { equals: phone },
-      category: { name: { in: [...PARTY_CONTACT_CATEGORY_NAMES] } },
+      category: { collectsContactInfo: true },
       ...(excludeAccountId != null ? { id: { not: excludeAccountId } } : {}),
     },
   });
@@ -1267,7 +1307,7 @@ async function assertUniquePartyCnic(cnic: string, excludeAccountId?: number) {
   const existing = await prisma.account.findFirst({
     where: {
       cnic: { equals: cnic },
-      category: { name: { in: [...PARTY_CONTACT_CATEGORY_NAMES] } },
+      category: { collectsContactInfo: true },
       ...(excludeAccountId != null ? { id: { not: excludeAccountId } } : {}),
     },
   });
@@ -1563,7 +1603,7 @@ export async function ensureCustomerAccount(
   tx: Prisma.TransactionClient,
   customer: { id: number; name: string },
 ) {
-  const category = await ensureCategoryInTx(tx, 'Sale Party');
+  const category = await ensureCategoryInTx(tx, 'Sale Party', { collectsContactInfo: true });
   const code = `C${String(customer.id).padStart(4, '0')}`;
 
   // Include inactive rows: soft-delete leaves the unique `code` occupied, so sync must
@@ -1606,7 +1646,9 @@ export async function ensureSupplierAccount(
   tx: Prisma.TransactionClient,
   supplier: { id: number; name: string },
 ) {
-  const category = await ensureCategoryInTx(tx, 'Ext. Purchase Party');
+  const category = await ensureCategoryInTx(tx, 'Ext. Purchase Party', {
+    collectsContactInfo: true,
+  });
   const code = `S${String(supplier.id).padStart(4, '0')}`;
 
   // Include inactive rows — same unique-code trap as ensureCustomerAccount after soft-delete.
@@ -1653,7 +1695,7 @@ export const KACHI_MAAL_CATEGORY_NAMES = {
   BARDANA: 'Bardana',
 } as const;
 
-/** Party categories that collect optional phone / address / CNIC. */
+/** @deprecated Prefer AccountCategory.collectsContactInfo — kept for migration/docs only. */
 export const PARTY_CONTACT_CATEGORY_NAMES = [
   KACHI_MAAL_CATEGORY_NAMES.SALE_PARTY,
   KACHI_MAAL_CATEGORY_NAMES.INT_PURCHASE,
@@ -1661,6 +1703,7 @@ export const PARTY_CONTACT_CATEGORY_NAMES = [
   'Party / Customer',
 ] as const;
 
+/** @deprecated Prefer category.collectsContactInfo */
 export function isPartyContactCategoryName(name?: string | null): boolean {
   return PARTY_CONTACT_CATEGORY_NAMES.includes(
     name as (typeof PARTY_CONTACT_CATEGORY_NAMES)[number],
@@ -1694,9 +1737,15 @@ export type SaleCommissionSystemAccounts = KachiMaalSystemAccounts & {
 export async function ensureKachiMaalAccounts(
   tx: Prisma.TransactionClient,
 ): Promise<KachiMaalSystemAccounts> {
-  await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.INT_PURCHASE);
-  await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.EXT_PURCHASE);
-  await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.SALE_PARTY);
+  await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.INT_PURCHASE, {
+    collectsContactInfo: true,
+  });
+  await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.EXT_PURCHASE, {
+    collectsContactInfo: true,
+  });
+  await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.SALE_PARTY, {
+    collectsContactInfo: true,
+  });
   const revenue = await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.REVENUE);
   const saleFee = await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.SALE_FEE);
   const bardana = await ensureCategoryInTx(tx, KACHI_MAAL_CATEGORY_NAMES.BARDANA);
@@ -1991,12 +2040,32 @@ export async function consolidateDuplicateInventoryAccounts(
   return canonical;
 }
 
-async function ensureCategoryInTx(tx: Prisma.TransactionClient, name: string) {
+async function ensureCategoryInTx(
+  tx: Prisma.TransactionClient,
+  name: string,
+  opts?: { collectsContactInfo?: boolean },
+) {
+  const defaultContact = isPartyContactCategoryName(name);
+  const wantsContact = opts?.collectsContactInfo ?? defaultContact;
+
   const existing = await tx.accountCategory.findFirst({
     where: { isActive: true, name: { equals: name } },
   });
-  if (existing) return existing;
-  return tx.accountCategory.create({ data: { name } });
+  if (existing) {
+    if (wantsContact && !existing.collectsContactInfo) {
+      return tx.accountCategory.update({
+        where: { id: existing.id },
+        data: { collectsContactInfo: true },
+      });
+    }
+    return existing;
+  }
+  return tx.accountCategory.create({
+    data: {
+      name,
+      collectsContactInfo: Boolean(wantsContact),
+    },
+  });
 }
 
 /** Rename a system account once when migrating display names (no-op if target already exists). */
@@ -3735,7 +3804,7 @@ export async function updateAccount(
     patch.isActive = data.isActive;
   }
 
-  const allowContact = isPartyContactCategoryName(account.category?.name);
+  const allowContact = Boolean(account.category?.collectsContactInfo);
   if (allowContact) {
     if (data.phone !== undefined) {
       const phone = normalizeOptionalContact(data.phone);

@@ -1,8 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { formatLedgerBalance } from '../../lib/format';
-import { PARTY_ACCOUNT_CATEGORIES } from '../../lib/kachiMaalCalculations';
 import { api, type Account, type AccountCategory } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import {
   DangerButton,
   FieldLabel,
@@ -13,22 +13,14 @@ import {
   TextInput,
 } from '../../components/ui/PageShell';
 
+type ManageMode = 'create' | 'edit' | 'delete';
+
 function defaultOpeningSideForCategory(categoryId: number, accounts: Account[]): 'DR' | 'CR' {
   const sibling = accounts.find((a) => a.categoryId === categoryId);
   if (sibling) {
     return sibling.type === 'ASSET' || sibling.type === 'EXPENSE' ? 'DR' : 'CR';
   }
   return 'DR';
-}
-
-function isPartyContactCategory(name?: string | null): boolean {
-  return Boolean(
-    name
-    && (
-      (PARTY_ACCOUNT_CATEGORIES as readonly string[]).includes(name)
-      || name === 'Party / Customer'
-    ),
-  );
 }
 
 const DELETE_TIMEOUT_MS = 30_000;
@@ -50,12 +42,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string)
 }
 
 /**
- * Unified accounts workspace: searchable list + create/edit/remove in one screen.
- * Creating = no row selected; editing = row selected (admin can remove from the same form).
+ * Unified accounts workspace with explicit Create / Edit / Delete modes.
+ * Left list stays visible; selecting a row loads Edit or Delete depending on the active tab.
  */
 export function AccountManagePage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const [mode, setMode] = useState<ManageMode>('create');
   const [categories, setCategories] = useState<AccountCategory[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [listCategoryId, setListCategoryId] = useState<number | ''>('');
@@ -72,7 +65,9 @@ export function AccountManagePage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const isCreate = selectedId == null;
+  const isCreate = mode === 'create';
+  const isEdit = mode === 'edit';
+  const isDelete = mode === 'delete';
 
   useEffect(() => {
     api.listCategories().then(setCategories).catch(() => setCategories([]));
@@ -96,8 +91,8 @@ export function AccountManagePage() {
   );
 
   const showContactFields = isCreate
-    ? isPartyContactCategory(selectedCategory?.name)
-    : isPartyContactCategory(editAccount?.category?.name);
+    ? Boolean(selectedCategory?.collectsContactInfo)
+    : Boolean(editAccount?.category?.collectsContactInfo);
 
   const filteredAccounts = useMemo(() => {
     const q = listQuery.trim().toLowerCase();
@@ -131,10 +126,13 @@ export function AccountManagePage() {
 
   function startCreate() {
     clearForm();
+    setMode('create');
     setMessage('');
   }
 
-  function selectAccount(account: Account, options?: { keepMessage?: boolean }) {
+  function selectAccount(account: Account, options?: { keepMessage?: boolean; nextMode?: ManageMode }) {
+    const nextMode = options?.nextMode ?? (mode === 'create' ? 'edit' : mode);
+    setMode(nextMode === 'create' ? 'edit' : nextMode);
     setSelectedId(account.id);
     setCategoryId(account.categoryId);
     setName(account.name);
@@ -146,8 +144,24 @@ export function AccountManagePage() {
     if (!options?.keepMessage) setMessage('');
   }
 
+  function onModeChange(next: ManageMode) {
+    setError('');
+    setMessage('');
+    if (next === 'create') {
+      clearForm();
+      setMode('create');
+      return;
+    }
+    setMode(next);
+    if (selectedId == null) {
+      clearForm();
+      setMode(next);
+    }
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (isDelete) return;
     setError('');
     setMessage('');
     setSaving(true);
@@ -181,7 +195,7 @@ export function AccountManagePage() {
           setMessage(`Account "${name}" submitted for approval.`);
         }
         clearForm();
-      } else {
+      } else if (isEdit) {
         if (selectedId == null) throw new Error('Select an account');
         const contactPayload = showContactFields
           ? {
@@ -196,8 +210,11 @@ export function AccountManagePage() {
         setAccounts(rows);
         setCategories(await api.listCategories());
         const next = rows.find((a) => a.id === selectedId);
-        if (next) selectAccount(next, { keepMessage: true });
-        else clearForm();
+        if (next) selectAccount(next, { keepMessage: true, nextMode: 'edit' });
+        else {
+          clearForm();
+          setMode('edit');
+        }
         return;
       }
       await reload();
@@ -209,7 +226,7 @@ export function AccountManagePage() {
   }
 
   async function onRemove() {
-    if (selectedId == null || !isAdmin) return;
+    if (selectedId == null || !isAdmin || !isDelete) return;
     const account = accounts.find((a) => a.id === selectedId);
     if (!account) return;
     if (!window.confirm(`Remove account "${account.name}"? This soft-deletes the account.`)) {
@@ -226,6 +243,7 @@ export function AccountManagePage() {
       );
       setMessage(`Account "${account.name}" removed.`);
       clearForm();
+      setMode('delete');
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed');
@@ -234,7 +252,7 @@ export function AccountManagePage() {
     }
   }
 
-  const contactFields = showContactFields ? (
+  const contactFields = showContactFields && (isCreate || isEdit) ? (
     <>
       <div>
         <FieldLabel>Phone number (optional)</FieldLabel>
@@ -319,100 +337,174 @@ export function AccountManagePage() {
         </Panel>
 
         <Panel>
-          <div className="mb-4">
-            <p className="text-sm font-semibold text-textPrimary">
-              {isCreate ? 'New account' : 'Edit account'}
-            </p>
-            <p className="mt-1 text-xs text-textMuted">
+          <div className="mb-4 space-y-3">
+            <SegmentedControl
+              ariaLabel="Account manage mode"
+              value={mode}
+              onChange={onModeChange}
+              options={[
+                { value: 'create', label: 'Create' },
+                { value: 'edit', label: 'Edit' },
+                { value: 'delete', label: 'Delete' },
+              ]}
+            />
+            <p className="text-xs text-textMuted">
               {isCreate
                 ? 'Fill the form and save to submit for approval.'
-                : 'Update details below. Admins can also remove this account.'}
+                : isEdit
+                  ? 'Select an account from the list, then update its details.'
+                  : 'Select an account from the list, then remove it. Admins only.'}
             </p>
           </div>
 
-          <form className="space-y-4" onSubmit={onSubmit}>
-            {isCreate ? (
-              <div>
-                <FieldLabel>Category</FieldLabel>
-                <select
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-                  required
+          {isDelete ? (
+            <div className="space-y-4">
+              {selectedId == null || !editAccount ? (
+                <p className="text-sm text-textMuted">Select an account from the list to delete.</p>
+              ) : (
+                <>
+                  <div>
+                    <FieldLabel>Category</FieldLabel>
+                    <div className="app-input-static text-sm">
+                      {editAccount.category?.name ?? '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <FieldLabel>Account name</FieldLabel>
+                    <div className="app-input-static text-sm">{editAccount.name}</div>
+                  </div>
+                  <div>
+                    <FieldLabel>Code</FieldLabel>
+                    <div className="app-input-static text-sm">{editAccount.code}</div>
+                  </div>
+                  {editAccount.category?.collectsContactInfo ? (
+                    <>
+                      <div>
+                        <FieldLabel>Phone</FieldLabel>
+                        <div className="app-input-static text-sm">{editAccount.phone || '—'}</div>
+                      </div>
+                      <div>
+                        <FieldLabel>Address</FieldLabel>
+                        <div className="app-input-static text-sm">{editAccount.address || '—'}</div>
+                      </div>
+                      <div>
+                        <FieldLabel>CNIC</FieldLabel>
+                        <div className="app-input-static text-sm">{editAccount.cnic || '—'}</div>
+                      </div>
+                    </>
+                  ) : null}
+                </>
+              )}
+
+              {error ? <p className="text-sm text-danger">{error}</p> : null}
+              {message ? <p className="text-sm text-success">{message}</p> : null}
+
+              {isAdmin ? (
+                <DangerButton
+                  type="button"
+                  disabled={saving || selectedId == null}
+                  onClick={() => void onRemove()}
                 >
-                  <option value="">Select category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <FieldLabel>Category</FieldLabel>
-                <div className="app-input-static text-sm">
-                  {editAccount?.category?.name ?? '—'}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <FieldLabel>Account name</FieldLabel>
-              <TextInput value={name} onChange={(e) => setName(e.target.value)} required />
+                  {saving ? 'Removing…' : 'Remove account'}
+                </DangerButton>
+              ) : (
+                <p className="text-sm text-textMuted">Only admins can delete accounts.</p>
+              )}
             </div>
-
-            {contactFields}
-
-            {isCreate ? (
-              <div className="grid gap-4 sm:grid-cols-2">
+          ) : (
+            <form className="space-y-4" onSubmit={onSubmit}>
+              {isCreate ? (
                 <div>
-                  <FieldLabel>Opening balance</FieldLabel>
-                  <TextInput
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={openingBalance}
-                    onChange={(e) => setOpeningBalance(e.target.value)}
-                    placeholder="0.00 (optional)"
-                  />
-                </div>
-                <div>
-                  <FieldLabel>Opening balance side</FieldLabel>
+                  <FieldLabel>Category</FieldLabel>
                   <select
                     className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                    value={openingBalanceSide}
-                    onChange={(e) => setOpeningBalanceSide(e.target.value as 'DR' | 'CR')}
-                    disabled={!openingBalance.trim() || Number(openingBalance) <= 0}
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
+                    required
                   >
-                    <option value="DR">Dr</option>
-                    <option value="CR">Cr</option>
+                    <option value="">Select category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
                   </select>
-                  {selectedCategory ? (
-                    <p className="mt-1 text-xs text-textMuted">
-                      Default for {selectedCategory.name}:{' '}
-                      {defaultOpeningSideForCategory(selectedCategory.id, accounts)} side
-                    </p>
-                  ) : null}
                 </div>
+              ) : (
+                <div>
+                  <FieldLabel>Category</FieldLabel>
+                  <div className="app-input-static text-sm">
+                    {editAccount?.category?.name ?? '—'}
+                  </div>
+                </div>
+              )}
+
+              {isEdit && selectedId == null ? (
+                <p className="text-sm text-textMuted">Select an account from the list to edit.</p>
+              ) : (
+                <>
+                  <div>
+                    <FieldLabel>Account name</FieldLabel>
+                    <TextInput
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      disabled={isEdit && selectedId == null}
+                    />
+                  </div>
+
+                  {contactFields}
+
+                  {isCreate ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <FieldLabel>Opening balance</FieldLabel>
+                        <TextInput
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={openingBalance}
+                          onChange={(e) => setOpeningBalance(e.target.value)}
+                          placeholder="0.00 (optional)"
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>Opening balance side</FieldLabel>
+                        <select
+                          className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                          value={openingBalanceSide}
+                          onChange={(e) => setOpeningBalanceSide(e.target.value as 'DR' | 'CR')}
+                          disabled={!openingBalance.trim() || Number(openingBalance) <= 0}
+                        >
+                          <option value="DR">Dr</option>
+                          <option value="CR">Cr</option>
+                        </select>
+                        {selectedCategory ? (
+                          <p className="mt-1 text-xs text-textMuted">
+                            Default for {selectedCategory.name}:{' '}
+                            {defaultOpeningSideForCategory(selectedCategory.id, accounts)} side
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {error ? <p className="text-sm text-danger">{error}</p> : null}
+              {message ? <p className="text-sm text-success">{message}</p> : null}
+
+              <div className="flex flex-wrap gap-2">
+                <PrimaryButton
+                  type="submit"
+                  disabled={saving || (isEdit && selectedId == null)}
+                >
+                  {saving ? 'Saving…' : isCreate ? 'Create account' : 'Save changes'}
+                </PrimaryButton>
+                <SecondaryButton type="button" disabled={saving} onClick={startCreate}>
+                  {isCreate ? 'Clear' : 'New account'}
+                </SecondaryButton>
               </div>
-            ) : null}
-
-            {error ? <p className="text-sm text-danger">{error}</p> : null}
-            {message ? <p className="text-sm text-success">{message}</p> : null}
-
-            <div className="flex flex-wrap gap-2">
-              <PrimaryButton type="submit" disabled={saving}>
-                {saving ? 'Saving…' : isCreate ? 'Create account' : 'Save changes'}
-              </PrimaryButton>
-              <SecondaryButton type="button" disabled={saving} onClick={startCreate}>
-                {isCreate ? 'Clear' : 'Cancel'}
-              </SecondaryButton>
-              {!isCreate && isAdmin ? (
-                <DangerButton type="button" disabled={saving} onClick={() => void onRemove()}>
-                  {saving ? 'Removing…' : 'Remove'}
-                </DangerButton>
-              ) : null}
-            </div>
-          </form>
+            </form>
+          )}
         </Panel>
       </div>
     </PageShell>

@@ -27,6 +27,7 @@ export type AccountCategory = {
   id: number;
   name: string;
   isActive: boolean;
+  collectsContactInfo: boolean;
 };
 
 export type Ledger = { id: number; accountId: number; balance: number };
@@ -434,10 +435,16 @@ export const api = {
   listCategories() {
     return request<AccountCategory[]>('/api/accounting/categories');
   },
-  createCategory(name: string) {
+  createCategory(data: { name: string; collectsContactInfo?: boolean }) {
     return request<AccountCategory>('/api/accounting/categories', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(data),
+    });
+  },
+  updateCategory(id: number, data: { name?: string; collectsContactInfo?: boolean }) {
+    return request<AccountCategory>(`/api/accounting/categories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     });
   },
   deleteCategory(id: number) {

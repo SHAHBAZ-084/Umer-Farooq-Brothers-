@@ -452,7 +452,7 @@ export function SaleCommissionInvoicePage() {
 
             <InvoiceFormSection label="Credit Side" labelClassName="text-ledgerCredit">
               <InvoiceFieldStack>
-                <InvoiceFieldGroup label="شناخت">
+                <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={6}>
                     <InvoiceField wide>
                       <FlatAccountSelect
@@ -495,7 +495,7 @@ export function SaleCommissionInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="قیمت">
+                <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={5}>
                     <InvoiceField>
                       <FieldLabel>ریٹ / من</FieldLabel>
@@ -586,7 +586,7 @@ export function SaleCommissionInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="فیس (خودکار)">
+                <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={4}>
                     <InvoiceReadOnlyField label={`کمیشن (${prefRates.commissionPercent}%)`} value={invoiceTotals.commissionAmount} />
                     <InvoiceReadOnlyField label={`دلالی (${prefRates.dalaliPercent}%)`} value={invoiceTotals.dalaliAmount} />
@@ -597,7 +597,7 @@ export function SaleCommissionInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="دستی اور باردانہ">
+                <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={4}>
                     <InvoiceField>
                       <FieldLabel>منشیانہ</FieldLabel>

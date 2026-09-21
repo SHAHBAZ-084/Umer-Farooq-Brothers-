@@ -517,7 +517,7 @@ export function KachiMaalInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="قیمت">
+                <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={5}>
                     <InvoiceField>
                       <FieldLabel>ریٹ / من</FieldLabel>
@@ -612,7 +612,7 @@ export function KachiMaalInvoicePage() {
                   </InvoiceFieldRow>
                 </InvoiceFieldGroup>
 
-                <InvoiceFieldGroup label="متفرق اور باردانہ">
+                <InvoiceFieldGroup>
                   <InvoiceFieldRow cols={4}>
                     <InvoiceField>
                       <FieldLabel>متفرق (اختیاری)</FieldLabel>

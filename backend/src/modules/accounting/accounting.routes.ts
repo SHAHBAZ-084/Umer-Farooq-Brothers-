@@ -20,10 +20,38 @@ accountingRouter.get(
 
 accountingRouter.post(
   '/categories',
-  validateBody(z.object({ name: z.string().min(1) })),
+  validateBody(
+    z.object({
+      name: z.string().min(1),
+      collectsContactInfo: z.boolean().optional(),
+    }),
+  ),
   asyncHandler(async (req, res) => {
-    const category = await accountingService.createAccountCategory(req.body.name);
+    const category = await accountingService.createAccountCategory(
+      req.body.name,
+      req.body.collectsContactInfo,
+    );
     res.status(201).json(category);
+  }),
+);
+
+accountingRouter.patch(
+  '/categories/:id',
+  validateBody(
+    z.object({
+      name: z.string().min(1).optional(),
+      collectsContactInfo: z.boolean().optional(),
+    }),
+  ),
+  asyncHandler(async (req, res) => {
+    const category = await accountingService.updateAccountCategory(
+      parseInt(param(req.params.id), 10),
+      {
+        name: req.body.name,
+        collectsContactInfo: req.body.collectsContactInfo,
+      },
+    );
+    res.json(category);
   }),
 );
 

@@ -170,10 +170,12 @@ model Customer {
 }
 
 model AccountCategory {
-  id        Int      @id @default(autoincrement())
-  name      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id                  Int      @id @default(autoincrement())
+  name                String
+  isActive            Boolean  @default(true)
+  /** When true, accounts in this category may collect phone / address / CNIC. */
+  collectsContactInfo Boolean  @default(false)
+  createdAt           DateTime @default(now())
 
   accounts Account[]
 }
